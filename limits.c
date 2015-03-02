@@ -173,7 +173,9 @@ void limits_go_home(uint8_t cycle_mask)
       st_prep_buffer(); // Check and prep segment buffer. NOTE: Should take no longer than 200us.
       // Check only for user reset. No time to run protocol_execute_runtime() in this loop.
       protocol_execute_runtime();
-      if (SYS_EXEC & EXEC_RESET) { protocol_execute_runtime(); return; }
+      if (SYS_EXEC & EXEC_RESET) { 
+        protocol_execute_runtime(); return; 
+      }
 
       // Check if we never reached limit switch.  call it a Probe fail.
       if (SYS_EXEC & EXEC_CYCLE_STOP) {
@@ -218,7 +220,7 @@ void limits_go_home(uint8_t cycle_mask)
         sys.position[idx] = -settings.homing_pulloff*settings.steps_per_mm[idx];
         target[idx] = 0;
       }
-      if (settings.homing_pulloff == 0.0) {request_eol_report(); } //force report if we are not going to move  TODO TEST
+      if (settings.homing_pulloff == 0.0) {request_eol_report(); } //force report if we are not going to move 
     } else { // Non-active cycle axis. Set target to not move during pull-off.
       target[idx] = (float)sys.position[idx]/settings.steps_per_mm[idx];
     }

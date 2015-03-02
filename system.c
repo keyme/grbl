@@ -137,8 +137,15 @@ uint8_t system_execute_line(char *line)
       if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
       IO_RESET_PORT |= IO_RESET_MASK;  //reset IO.  Will re-enable in loop
       break;
-      
-      
+  case 'Z': //zero the current buffers
+      if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
+      SYS_EXEC |= EXEC_FEED_HOLD;  //Stop motion;
+      while (sys.state & (STATE_CYCLE)) protocol_execute_runtime(); //spin untill stopped
+      st_reset  (); // Immediately force kill steppers and reset step segment buffer.
+      plan_reset(); // Reset planner buffer. Zero planner positions. Ensure probe motion is cleared.
+      plan_sync_position(); // Sync planner position to current machine position for pull-off move.
+      sys.state = STATE_IDLE;
+      break;
 
 #endif
          
