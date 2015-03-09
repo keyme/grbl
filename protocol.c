@@ -35,7 +35,6 @@ static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static uint32_t report_clock=0; //time until next automatic report
 static uint8_t next_report=REQUEST_STATUS_REPORT;
-//static uint8_t is_init=0;
 
 // Directs and executes one line of formatted input from protocol_process. While mostly
 // incoming streaming g-code blocks, this also directs and executes Grbl internal commands,
@@ -90,7 +89,6 @@ void protocol_main_loop()
     sys.state = STATE_IDLE; // Set system to ready. Clear all state flags.
     system_execute_startup(line); // Execute startup script.
   }
-  //  is_init = 1;
     
   // ---------------------------------------------------------------------------------  
   // Primary loop! Upon a system abort, this exits back to main() to reset the system. 
@@ -170,7 +168,6 @@ void protocol_main_loop()
     if (sys.abort) { return; } // Bail to main() program loop to reset system.
               
   }
-  
   return; /* Never reached */
 }
 
@@ -281,7 +278,7 @@ void protocol_execute_runtime()
     }
         
     // Execute a cycle start by starting the stepper interrupt begin executing the blocks in queue.
-	 //ADS block while homing.
+	 //block Start while homing.
     if ((rt_exec & EXEC_CYCLE_START) && !(sys.state & STATE_HOMING)) { 
       if (sys.state == STATE_QUEUED) {
         sys.state = STATE_CYCLE;

@@ -80,7 +80,6 @@
 #define HOMING_CYCLE_0 (1<<Z_AXIS)                // REQUIRED: First move 
 #define HOMING_CYCLE_1 (1<<Y_AXIS)                // Clear Y Axis
 #define HOMING_CYCLE_2 ((1<<X_AXIS)|(1<<C_AXIS))  // X and carousel ok at same time.
-//#define HOMING_CYCLE_3 (1<<C_AXIS)                // OPTIONAL: Then move 
 
 
 #define HOMING_CYCLE_ALL  (HOMING_CYCLE_0|HOMING_CYCLE_1|HOMING_CYCLE_2)
@@ -223,15 +222,6 @@
 // #define RX_BUFFER_SIZE 128 // Uncomment to override defaults in serial.h
 // #define TX_BUFFER_SIZE 64
   
-// Toggles XON/XOFF software flow control for serial communications. Not officially supported
-// due to problems involving the Atmega8U2 USB-to-serial chips on current Arduinos. The firmware
-// on these chips do not support XON/XOFF flow control characters and the intermediate buffer 
-// in the chips cause latency and overflow problems with standard terminal programs. However, 
-// using specifically-programmed UI's to manage this latency problem has been confirmed to work.
-// As well as, older FTDI FT232RL-based Arduinos(Duemilanove) are known to work with standard
-// terminal programs since their firmware correctly manage these XON/XOFF characters. In any
-// case, please report any successes to grbl administrators!
-// #define ENABLE_XONXOFF // Default disabled. Uncomment to enable.
 
 // A simple software debouncing feature for hard limit switches. When enabled, the interrupt 
 // monitoring the hard limit switch pins will enable the Arduino's watchdog timer to re-check 

@@ -59,11 +59,9 @@ uint8_t read_float(char *line, uint8_t *char_counter, float *float_ptr);
 // Delays variable-defined milliseconds. Compiler compatibility fix for _delay_ms().
 void delay_ms(uint16_t ms);
 
-// Delays variable-defined microseconds. Compiler compatibility fix for _delay_us().
-void delay_us(uint32_t us);
-
-uint8_t get_direction_mask(uint8_t i);
-uint8_t get_step_mask(uint8_t i);
+//convert index into bitmask. using macros instead of functions to take care of guaranteed layout
+#define get_direction_mask(i)  ((1<<(X_DIRECTION_BIT))<<(i))
+#define get_step_mask(i)       ((1<<(X_STEP_BIT))<<(i))
 
 uint8_t get_axis_idx(char axis_letter);
 

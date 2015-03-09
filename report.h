@@ -105,7 +105,6 @@ void report_probe_parameters(uint8_t error);
 // Prints a message indicating probe failure
 void report_probe_fail();
 
-
 // Prints Grbl NGC parameters (coordinate offsets, probe)
 void report_ngc_parameters();
 

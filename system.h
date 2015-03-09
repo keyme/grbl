@@ -71,7 +71,6 @@
 #define STATE_QUEUED     bit(3) // Indicates buffered blocks, awaiting cycle start.
 #define STATE_CYCLE      bit(4) // Cycle is running
 #define STATE_HOLD       bit(5) // Executing feed hold
-// #define STATE_JOG     bit(6) // Jogging mode is unique like homing.
 
 
 // Define global system variables

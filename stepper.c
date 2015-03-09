@@ -518,17 +518,14 @@ void st_reset()
 
 
 void keyme_init(){
-#ifdef KEYME_BOARD
   //PORTG0 for drive enable
   ESTOP_DDR  |= (1<<RUN_ENABLE_BIT);    //set enable as outupt
   ESTOP_DDR  &= ~(ESTOP_BIT);           //estop as input
   ESTOP_PORT |= (1<<RUN_ENABLE_BIT);  //allow motors to run
   ESTOP_PORT &= ~(ESTOP_BIT);           //estop input normal-low
 
-
   //Microstepping
   MS_DDR = MS_MASK; //all output
-
 
   MS_PORT = settings.microsteps&MS_MASK;
   //Phase Current Decay. 
@@ -547,7 +544,6 @@ void keyme_init(){
   //Setup IO Reset Port
   IO_RESET_DDR |= IO_RESET_MASK;
   IO_RESET_PORT &= ~IO_RESET_MASK; //don't reset
-#endif
 }
 
 
