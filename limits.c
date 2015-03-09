@@ -30,7 +30,6 @@
 
 #define HOMING_AXIS_SEARCH_SCALAR  1.1  // Axis search distance multiplier. Must be > 1.
 
-uint8_t limit_approach = 0; //bits are 1 when homing toward limit.
 
 limit_t limits={0};
 
@@ -88,7 +87,7 @@ void limits_disable()
 // Limit checking moved to stepper ISR. 
 // limits_enable() sets limits.active and limits.expected flags.
 // stepper stops an axis whenever LIMIT_PIN&limits.active != limits.expected,
-//   in this case, it also sets limits.homenext to signal homing routine to continue.
+//   in this case, it also clears limits.is_homing to signal homing routine to continue.
 //   If not homing, it does a hard reset and sets the alarm.state
 //   (See `must_stop` section of ISR TIMER1_COMPA_vect)
 
@@ -111,11 +110,12 @@ void limits_go_home(uint8_t cycle_mask)
 {
   if (sys.abort || !cycle_mask) { return; } // Block if system reset has been issued.
 
+  float homing_rate;
   // Initialize homing in search mode to quickly engage the specified cycle_mask limit switches.
   uint8_t approach = ~0;  //approach has all bits set (negative dir) or none (positive)
-  float homing_rate;
   uint8_t idx;
   uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE+1);
+  uint8_t n_active_axis = 0;
   float target[N_AXIS];
 
   uint8_t flipped = settings.homing_dir_mask>>X_DIRECTION_BIT;  //assumes keyme configuration.
@@ -128,6 +128,7 @@ void limits_go_home(uint8_t cycle_mask)
 
   for (idx=0; idx<N_AXIS; idx++){
     if (bit_istrue(cycle_mask,bit(idx))) {
+      n_active_axis++;
       max_travel = max(max_travel,settings.max_travel[idx]);
       min_seek_rate = min(min_seek_rate,settings.homing_seek_rate[idx]);
     }
@@ -135,36 +136,33 @@ void limits_go_home(uint8_t cycle_mask)
   max_travel *= HOMING_AXIS_SEARCH_SCALAR; // Ensure homing switches engaged by over-estimating max travel.
   max_travel += settings.homing_pulloff;
   homing_rate = min_seek_rate;
+  // Adjust total rate so individual axes all move at desired homing rate.
+  homing_rate *= sqrt(n_active_axis);
 
   plan_reset(); // Reset planner buffer to zero planner current position and to clear previous motions.
 
   do {
     // Set target location and rate for active axes.
     // and reset homing axis locks based on cycle mask.  
-    uint8_t axislock = 0; 
-    uint8_t n_active_axis = 0;
+    uint8_t axislock = 0;
+    float travel = (approach)?max_travel:settings.homing_pulloff;
+    
     for (idx=0; idx<N_AXIS; idx++) {
       if (bit_istrue(cycle_mask,bit(idx))) {
-        n_active_axis++;
         axislock |= (1<<(X_STEP_BIT+idx)); //assumes axes are in bit order.
-        if ((flipped&(1<<idx))^approach) { target[idx] = -max_travel; }
-        else {                             target[idx] = max_travel; }
+        if ((flipped&(1<<idx))^approach) { target[idx] = -travel; }
+        else {                             target[idx] = travel; }
       } 
       else {                               target[idx] = 0; 
       } 
     }
-
-    homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Adjust so individual axes all move at homing rate.
-                                        // homing_rate is reset each time through this loop, so it doesn't keep increasing
-
-    limit_approach = approach;  //limit_approach bits is high if approaching limit switch 
 
     // Perform homing cycle. Planner buffer should be empty, as required to initiate the homing cycle.
     plan_buffer_line(target, homing_rate, false, LINENUMBER_EMPTY_BLOCK); // Bypass mc_line(). Directly plan homing motion.
 
 	 // axislock bit is high if axis is homing, so we only enable checking on moving axes.
     limits_enable(axislock,~approach);  //expect 0 on approach (stop when 1). vice versa for pulloff
-    limits.homenext =0;
+    limits.ishoming =1;
 
     st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
     st_wake_up(); // Initiate motion
@@ -181,7 +179,7 @@ void limits_go_home(uint8_t cycle_mask)
         protocol_execute_runtime();
         return;
       }
-    } while (!limits.homenext);  //stepper isr sets this when limit is hit
+    } while (limits.ishoming);  //stepper isr sets this when limit is hit
 
     limits_disable();
     st_reset(); // Immediately force kill steppers and reset step segment buffer.

@@ -281,7 +281,7 @@ void protocol_execute_runtime()
     }
         
     // Execute a cycle start by starting the stepper interrupt begin executing the blocks in queue.
-	 //ADS block while homing.
+	 //ADS blocks start commands  while homing.
     if ((rt_exec & EXEC_CYCLE_START) && !(sys.state & STATE_HOMING)) { 
       if (sys.state == STATE_QUEUED) {
         sys.state = STATE_CYCLE;

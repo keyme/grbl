@@ -440,8 +440,9 @@ ISR(TIMER1_COMPA_vect)
   if (must_stop) {
     st.step_outbits &= ~(must_stop>>LIMIT_BIT_SHIFT);
     if (!st.step_outbits) {
-      limits.homenext|=1;
+      limits.ishoming=0; //if all axes at correct limit state, homing phase is over
     }
+    //if limits made but not homing or alarmed already: critical alarm.
     if ( !(sys.state & (STATE_ALARM|STATE_HOMING)) && 
          bit_isfalse(SYS_EXEC,EXEC_ALARM)) {
       mc_reset(); // Initiate system kill.
