@@ -115,7 +115,7 @@ void limits_go_home(uint8_t cycle_mask)
   uint8_t approach = ~0;  //approach has all bits set (negative dir) or none (positive)
   float homing_rate;
   uint8_t idx;
-  uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE+1);
+  uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE);
   float target[N_AXIS];
 
   uint8_t flipped = settings.homing_dir_mask>>X_DIRECTION_BIT;  //assumes keyme configuration.
@@ -125,42 +125,40 @@ void limits_go_home(uint8_t cycle_mask)
   // Determine travel distance to the furthest homing switch based on user max travel settings.
   float min_seek_rate = 1e9; //arbitrary maximum=1km/s, will be reduced by axis setting below
   float max_travel = 0;
+  uint8_t n_active_axis = 0;
+  uint8_t axislock = 0; 
 
   for (idx=0; idx<N_AXIS; idx++){
     if (bit_istrue(cycle_mask,bit(idx))) {
+      n_active_axis++;
+      axislock |= (1<<(X_STEP_BIT+idx)); //assumes axes are in bit order.
       max_travel = max(max_travel,settings.max_travel[idx]);
       min_seek_rate = min(min_seek_rate,settings.homing_seek_rate[idx]);
     }
   }
   max_travel *= HOMING_AXIS_SEARCH_SCALAR; // Ensure homing switches engaged by over-estimating max travel.
   max_travel += settings.homing_pulloff;
-  homing_rate = min_seek_rate;
+  homing_rate = min_seek_rate * sqrt(n_active_axis); //Adjust so individual axes all move at homing rate.
 
   plan_reset(); // Reset planner buffer to zero planner current position and to clear previous motions.
 
   do {
     // Set target location and rate for active axes.
     // and reset homing axis locks based on cycle mask.  
-    uint8_t axislock = 0; 
-    uint8_t n_active_axis = 0;
+    float travel = approach?max_travel:settings.homing_pulloff; //limit travel away from the switch to the pulloff distance.
     for (idx=0; idx<N_AXIS; idx++) {
       if (bit_istrue(cycle_mask,bit(idx))) {
-        n_active_axis++;
-        axislock |= (1<<(X_STEP_BIT+idx)); //assumes axes are in bit order.
-        if ((flipped&(1<<idx))^approach) { target[idx] = -max_travel; }
-        else {                             target[idx] = max_travel; }
+        if ((flipped&(1<<idx))^approach) { target[idx] = -travel; }
+        else {                             target[idx] = travel; }
       } 
       else {                               target[idx] = 0; 
       } 
     }
 
-    homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Adjust so individual axes all move at homing rate.
-                                        // homing_rate is reset each time through this loop, so it doesn't keep increasing
-
     limit_approach = approach;  //limit_approach bits is high if approaching limit switch 
 
     // Perform homing cycle. Planner buffer should be empty, as required to initiate the homing cycle.
-    plan_buffer_line(target, homing_rate, false, LINENUMBER_EMPTY_BLOCK); // Bypass mc_line(). Directly plan homing motion.
+    plan_buffer_line(target, homing_rate, false, LINENUMBER_EMPTY_BLOCK);  // Bypass mc_line(). Directly plan homing motion.
 
 	 // axislock bit is high if axis is homing, so we only enable checking on moving axes.
     limits_enable(axislock,~approach);  //expect 0 on approach (stop when 1). vice versa for pulloff
@@ -171,7 +169,7 @@ void limits_go_home(uint8_t cycle_mask)
 
     do {
       st_prep_buffer(); // Check and prep segment buffer. NOTE: Should take no longer than 200us.
-      // Check only for user reset. No time to run protocol_execute_runtime() in this loop.
+      // Check only for user reset. Keyme: fixed to allow protocol_execute_runtime() in this loop.
       protocol_execute_runtime();
       if (SYS_EXEC & EXEC_RESET) { protocol_execute_runtime(); return; }
 
@@ -187,16 +185,25 @@ void limits_go_home(uint8_t cycle_mask)
     st_reset(); // Immediately force kill steppers and reset step segment buffer.
     plan_reset(); // Reset planner buffer. Zero planner positions. Ensure homing motion is cleared.
 
+
+    if (!approach){
+      linenumber_insert(LINENUMBER_SPECIAL|(homing_line_number*4+LINEMASK_OFF_EDGE));
+      request_eol_report();
+      protocol_execute_runtime();
+    }
+  
     delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
 
+
     // Reverse direction and reset homing rate for locate cycle(s).
-    homing_rate = settings.homing_feed_rate;
     approach = ~approach; //toggle all bits
+    homing_rate = settings.homing_feed_rate * sqrt(n_active_axis); ;
+    
 
   } while (n_cycle-- > 0);
 
-  //force report of known position for compare to zero.
-  linenumber_insert(LINENUMBER_SPECIAL|homing_line_number++);
+  //force report of reference position for compare to zero.
+  linenumber_insert(LINENUMBER_SPECIAL|(homing_line_number*4+LINEMASK_ON_EDGE));
   request_eol_report();
   protocol_execute_runtime();
 
@@ -225,7 +232,10 @@ void limits_go_home(uint8_t cycle_mask)
   }
   plan_sync_position(); // Sync planner position to current machine position for pull-off move.
 
-  plan_buffer_line(target, min_seek_rate, false, LINENUMBER_SPECIAL|homing_line_number++); // Bypass mc_line(). Directly plan motion.
+  // Bypass mc_line(). Directly plan motion back to 0.  Report linenumber when done.
+  plan_buffer_line(target, min_seek_rate, false, LINENUMBER_SPECIAL|(homing_line_number*4+LINEMASK_DONE));
+  homing_line_number++;
+            
 
   // Initiate pull-off using main motion control routines.
   // TODO : Clean up state routines so that this motion still shows homing state.

@@ -126,6 +126,9 @@ void system_execute_startup(char *line);
 #define LINENUMBER_EMPTY_BLOCK 0x8000 //the other bit, used as a flag
 #define LINENUMBER_SPECIAL      0x4000
 #define LINENUMBER_MAX         (LINENUMBER_SPECIAL-1)
+#define LINEMASK_OFF_EDGE         (0x0)
+#define LINEMASK_ON_EDGE         (0x1)
+#define LINEMASK_DONE           (0x2)
 typedef uint16_t linenumber_t;  //resize back to int32 for bigger numbers
 
 

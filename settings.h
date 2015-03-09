@@ -26,7 +26,7 @@
 
 
 
-#define GRBL_VERSION "0.9K.2"
+#define GRBL_VERSION "0.9K.2.1"
 #define GRBL_VERSION_BUILD __DATE__ " " __TIME__ 
 
 

@@ -441,6 +441,7 @@ ISR(TIMER1_COMPA_vect)
     st.step_outbits &= ~(must_stop>>LIMIT_BIT_SHIFT);
     if (!st.step_outbits) {
       limits.homenext|=1;
+      request_report(REQUEST_STATUS_REPORT|REQUEST_LIMIT_REPORT,LINENUMBER_EMPTY_BLOCK);
     }
     if ( !(sys.state & (STATE_ALARM|STATE_HOMING)) && 
          bit_isfalse(SYS_EXEC,EXEC_ALARM)) {
