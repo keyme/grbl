@@ -103,14 +103,12 @@ void report_status_message(uint8_t status_code)
 void report_alarm_message(int8_t alarm_code)
 {
   printPgmString(PSTR("ALARM: "));
-  switch (alarm_code) {
-    case ALARM_LIMIT_ERROR:
-    printPgmString(PSTR("Hard/soft limit")); break;
-    case ALARM_ABORT_CYCLE:
-    printPgmString(PSTR("Abort during cycle")); break;
-    case ALARM_PROBE_FAIL:
-    printPgmString(PSTR("Probe fail")); break;
-  }
+  if (alarm_code & ALARM_SOFT_LIMIT)  printPgmString(PSTR("Soft limit "));
+  if (alarm_code & ALARM_HARD_LIMIT)  printPgmString(PSTR("Hard limit "));
+  if (alarm_code & ALARM_ABORT_CYCLE) printPgmString(PSTR("Abort during cycle "));
+  if (alarm_code & ALARM_PROBE_FAIL)  printPgmString(PSTR("Probe fail "));
+  if (alarm_code & ALARM_HOME_FAIL)   printPgmString(PSTR("Homing fail "));
+  if (alarm_code & ALARM_ESTOP)       printPgmString(PSTR("Estop pressed "));
   printPgmString(PSTR("\r\n"));
   delay_ms(500); // Force delay to ensure message clears serial write buffer.
 }
@@ -468,10 +466,10 @@ uint8_t report_realtime_status()
   printInteger(current_position[i]);
     
   // Report current line number
-  if (sys.eol_flag) {
+  if (sys.flags & SYSFLAG_EOL_REPORT) {
     ln = linenumber_get()&~LINENUMBER_EMPTY_BLOCK;
     if ((linenumber_peek()&LINENUMBER_EMPTY_BLOCK) == 0) {
-      sys.eol_flag = 0;
+      sys.flags &=  ~SYSFLAG_EOL_REPORT;
     }
   }
 
@@ -481,7 +479,7 @@ uint8_t report_realtime_status()
     
   printPgmString(PSTR(">\r\n"));
 
-  return sys.eol_flag; //returns True if more work to do
+  return (sys.flags & SYSFLAG_EOL_REPORT); //returns True if more work to do
 
 }
 

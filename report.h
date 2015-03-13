@@ -56,11 +56,6 @@
 #define STATUS_GCODE_UNUSED_WORDS 37
 #define STATUS_GCODE_G43_DYNAMIC_AXIS_ERROR 38
 
-// Define Grbl alarm codes. Less than zero to distinguish alarm error from status error.
-#define ALARM_LIMIT_ERROR -1
-#define ALARM_ABORT_CYCLE -2
-#define ALARM_PROBE_FAIL -3
-
 // Define Grbl feedback message codes.
 #define MESSAGE_CRITICAL_EVENT 1
 #define MESSAGE_ALARM_LOCK 2
@@ -122,6 +117,6 @@ void report_build_info(char *line);
 void report_limit_pins();
 
 #define request_report(report,exec) (sysflags.report_rqsts|=(report))&&(SYS_EXEC|=(EXEC_RUNTIME_REPORT|(exec)))
-#define request_eol_report()  (sys.eol_flag|=1);request_report(REQUEST_STATUS_REPORT,0)
+#define request_eol_report()  (sys.flags|=SYSFLAG_EOL_REPORT);request_report(REQUEST_STATUS_REPORT,0)
 
 #endif

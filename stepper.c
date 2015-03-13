@@ -446,6 +446,7 @@ ISR(TIMER1_COMPA_vect)
          bit_isfalse(SYS_EXEC,EXEC_ALARM)) {
       mc_reset(); // Initiate system kill.
       // Indicate hard limit critical event, print limits
+      sys.alarm |= ALARM_HARD_LIMIT;
       request_report(REQUEST_LIMIT_REPORT,(EXEC_ALARM | EXEC_CRIT_EVENT));
     }
   }

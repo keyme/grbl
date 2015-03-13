@@ -177,6 +177,7 @@ void limits_go_home(uint8_t cycle_mask)
 
       // Check if we never reached limit switch.  call it a Probe fail.
       if (SYS_EXEC & EXEC_CYCLE_STOP) {
+        sys.alarm |= ALARM_HOME_FAIL;
         SYS_EXEC|=EXEC_CRIT_EVENT;
         protocol_execute_runtime();
         return;
@@ -260,6 +261,7 @@ void limits_soft_check(float *target)
       }
 
       mc_reset(); // Issue system reset and ensure spindle and coolant are shutdown.
+      sys.alarm |= ALARM_SOFT_LIMIT;
       SYS_EXEC |= (EXEC_ALARM | EXEC_CRIT_EVENT); // Indicate soft limit critical event
       protocol_execute_runtime(); // Execute to enter critical event loop and system abort
       return;

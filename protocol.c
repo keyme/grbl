@@ -208,11 +208,10 @@ void protocol_execute_runtime()
     if (rt_exec & (EXEC_ALARM | EXEC_CRIT_EVENT)) {      
       sys.state = STATE_ALARM; // Set system alarm state
 
-      // Critical events. Hard/soft limit events identified by both critical event and alarm exec
-      // flags. Probe fail is identified by the critical event exec flag only.
+      // Critical events. Error events identified by sys.alarm flags
+      report_alarm_message(sys.alarm);
+        // check critical
       if (rt_exec & EXEC_CRIT_EVENT) {
-        if (rt_exec & EXEC_ALARM) { report_alarm_message(ALARM_LIMIT_ERROR); }
-        else { report_alarm_message(ALARM_PROBE_FAIL); }
         report_feedback_message(MESSAGE_CRITICAL_EVENT);
         bit_false(SYS_EXEC,EXEC_RESET); // Disable any existing reset
         do { 
@@ -222,15 +221,9 @@ void protocol_execute_runtime()
           // same could be said about soft limits. While the position is not lost, the incoming
           // stream could be still engaged and cause a serious crash if it continues afterwards.
         } while (bit_isfalse(SYS_EXEC,EXEC_RESET));
-
-      // Standard alarm event. Only abort during motion qualifies.
-      } else {
-        // Runtime abort command issued during a cycle, feed hold, or homing cycle. Message the
-        // user that position may have been lost and set alarm state to enable the alarm lockout
-        // to indicate the possible severity of the problem.
-        report_alarm_message(ALARM_ABORT_CYCLE);
       }
       bit_false(SYS_EXEC,(EXEC_ALARM | EXEC_CRIT_EVENT));
+      sys.alarm = 0; //clear reported alarms
     } 
   
     // Execute system abort. 
@@ -275,7 +268,7 @@ void protocol_execute_runtime()
         sys.state = STATE_HOLD;
         st_update_plan_block_parameters();
         st_prep_buffer();
-        sys.auto_start = false; // Disable planner auto start upon feed hold.
+        sys.flags &=~ SYSFLAG_AUTOSTART; // Disable planner auto start upon feed hold.
       }
       bit_false(SYS_EXEC,EXEC_FEED_HOLD);
     }
@@ -288,9 +281,9 @@ void protocol_execute_runtime()
         st_prep_buffer(); // Initialize step segment buffer before beginning cycle.
         st_wake_up();
         if (bit_istrue(settings.flags,BITFLAG_AUTO_START)) {
-          sys.auto_start = true; // Re-enable auto start after feed hold.
+          sys.flags |= SYSFLAG_AUTOSTART; // Re-enable auto start after feed hold.
         } else {
-          sys.auto_start = false; // Reset auto start per settings.
+          sys.flags &= ~SYSFLAG_AUTOSTART; // Reset auto start per settings.
         }
       }    
       bit_false(SYS_EXEC,EXEC_CYCLE_START);
@@ -326,7 +319,7 @@ void protocol_execute_runtime()
 void protocol_buffer_synchronize()
 {
   // Check and set auto start to resume cycle after synchronize and caller completes.
-  if (sys.state == STATE_CYCLE) { sys.auto_start = true; }
+  if (sys.state == STATE_CYCLE) { sys.flags |= SYSFLAG_AUTOSTART; }
   while (plan_get_current_block() || (sys.state == STATE_CYCLE)) { 
     protocol_execute_runtime();   // Check and execute run-time commands
     if (sys.abort) { return; } // Check for system abort
@@ -344,4 +337,6 @@ void protocol_buffer_synchronize()
 // NOTE: This function is called from the main loop and mc_line() only and executes when one of
 // two conditions exist respectively: There are no more blocks sent (i.e. streaming is finished, 
 // single commands), or the planner buffer is full and ready to go.
-void protocol_auto_cycle_start() { if (sys.auto_start) { SYS_EXEC |= EXEC_CYCLE_START; } } 
+void protocol_auto_cycle_start() { 
+  if (sys.flags & SYSFLAG_AUTOSTART) { SYS_EXEC |= EXEC_CYCLE_START; } 
+} 
