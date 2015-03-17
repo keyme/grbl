@@ -71,15 +71,26 @@
 #define STATE_QUEUED     bit(3) // Indicates buffered blocks, awaiting cycle start.
 #define STATE_CYCLE      bit(4) // Cycle is running
 #define STATE_HOLD       bit(5) // Executing feed hold
-// #define STATE_JOG     bit(6) // Jogging mode is unique like homing.
+
+// Define Grbl alarm codes. Listed most to least serious 
+#define ALARM_SOFT_LIMIT  bit(0) // soft limits exceeded
+#define ALARM_HARD_LIMIT  bit(1) // hard limit hit
+#define ALARM_ABORT_CYCLE bit(2) // abort during motion
+#define ALARM_PROBE_FAIL  bit(3) // probe not found
+#define ALARM_HOME_FAIL   bit(4) // home switch transition not found
+#define ALARM_ESTOP       bit(5) // external estop pressed
+
+// Define system flags
+#define SYSFLAG_EOL_REPORT bit(0)  // Block is done executing, report linenum
+#define SYSFLAG_AUTOSTART  bit(1)  // autostart is active
 
 
 // Define global system variables
 typedef struct {
   uint8_t abort;                 // System abort flag. Forces exit back to main loop for reset.
   uint8_t state;                 // Tracks the current state of Grbl.
-  uint8_t auto_start;            // Planner auto-start flag. Toggled off during feed hold. Defaulted by settings.  
-  uint8_t eol_flag;              //flag for reporting linenumber;
+  uint8_t flags;                 // see SYSFLAG_xxx above
+  uint8_t alarm;                 // see ALARM_xxx above. which alarm(s) are active
   int32_t position[N_AXIS];      // Real-time machine (aka home) position vector in steps. 
                                  // NOTE: This may need to be a volatile variable, if problems arise.                             
   int32_t probe_position[N_AXIS]; // Last probe position in machine coordinates and steps.
@@ -126,6 +137,9 @@ void system_execute_startup(char *line);
 #define LINENUMBER_EMPTY_BLOCK 0x8000 //the other bit, used as a flag
 #define LINENUMBER_SPECIAL      0x4000
 #define LINENUMBER_MAX         (LINENUMBER_SPECIAL-1)
+#define LINEMASK_OFF_EDGE         (0x0)
+#define LINEMASK_ON_EDGE         (0x1)
+#define LINEMASK_HOMED           (0x2)
 typedef uint16_t linenumber_t;  //resize back to int32 for bigger numbers
 
 

@@ -30,7 +30,6 @@
 
 #define HOMING_AXIS_SEARCH_SCALAR  1.1  // Axis search distance multiplier. Must be > 1.
 
-uint8_t limit_approach = 0; //bits are 1 when homing toward limit.
 
 limit_t limits={0};
 
@@ -88,7 +87,7 @@ void limits_disable()
 // Limit checking moved to stepper ISR. 
 // limits_enable() sets limits.active and limits.expected flags.
 // stepper stops an axis whenever LIMIT_PIN&limits.active != limits.expected,
-//   in this case, it also sets limits.homenext to signal homing routine to continue.
+//   in this case, it also clears limits.is_homing to signal homing routine to continue.
 //   If not homing, it does a hard reset and sets the alarm.state
 //   (See `must_stop` section of ISR TIMER1_COMPA_vect)
 
@@ -111,92 +110,96 @@ void limits_go_home(uint8_t cycle_mask)
 {
   if (sys.abort || !cycle_mask) { return; } // Block if system reset has been issued.
 
-  // Initialize homing in search mode to quickly engage the specified cycle_mask limit switches.
-  uint8_t approach = ~0;  //approach has all bits set (negative dir) or none (positive)
-  float homing_rate;
-  uint8_t idx;
-  uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE+1);
   float target[N_AXIS];
-
-  uint8_t flipped = settings.homing_dir_mask>>X_DIRECTION_BIT;  //assumes keyme configuration.
-  //replace with an instance of `if (bitistrue(h_d_m,X_DIRECTION_BIT)) { flipped|=1<<X_AXIS;}` 
-  //for each axis if the bits line up differently
-
+  float homing_rate;
   // Determine travel distance to the furthest homing switch based on user max travel settings.
   float min_seek_rate = 1e9; //arbitrary maximum=1km/s, will be reduced by axis setting below
   float max_travel = 0;
+  // Initialize homing in search mode to quickly engage the specified cycle_mask limit switches.
+  uint8_t approach = ~0;  //approach has all bits set (negative dir) or none (positive)
+  uint8_t idx;
+  uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE);
+  uint8_t n_active_axis = 0;
+
+  uint8_t flipped = settings.homing_dir_mask>>X_DIRECTION_BIT;  //assumes keyme configuration.
+  uint8_t axislock = 0; 
 
   for (idx=0; idx<N_AXIS; idx++){
     if (bit_istrue(cycle_mask,bit(idx))) {
+      n_active_axis++;
+      axislock |= (1<<(X_STEP_BIT+idx)); //assumes axes are in bit order.
       max_travel = max(max_travel,settings.max_travel[idx]);
       min_seek_rate = min(min_seek_rate,settings.homing_seek_rate[idx]);
     }
   }
   max_travel *= HOMING_AXIS_SEARCH_SCALAR; // Ensure homing switches engaged by over-estimating max travel.
-  max_travel += settings.homing_pulloff;
-  homing_rate = min_seek_rate;
+  homing_rate = min_seek_rate * sqrt(n_active_axis); //Adjust so individual axes all move at homing rate.
 
   plan_reset(); // Reset planner buffer to zero planner current position and to clear previous motions.
 
   do {
     // Set target location and rate for active axes.
     // and reset homing axis locks based on cycle mask.  
-    uint8_t axislock = 0; 
-    uint8_t n_active_axis = 0;
+    float travel = (approach)?max_travel:settings.homing_pulloff; //limit travel away from the switch to the pulloff distance.
+    travel += settings.homing_pulloff;
     for (idx=0; idx<N_AXIS; idx++) {
       if (bit_istrue(cycle_mask,bit(idx))) {
-        n_active_axis++;
-        axislock |= (1<<(X_STEP_BIT+idx)); //assumes axes are in bit order.
-        if ((flipped&(1<<idx))^approach) { target[idx] = -max_travel; }
-        else {                             target[idx] = max_travel; }
+        if ((flipped&(1<<idx))^approach) { target[idx] = -travel; }
+        else {                             target[idx] = travel; }
       } 
       else {                               target[idx] = 0; 
       } 
     }
 
-    homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Adjust so individual axes all move at homing rate.
-                                        // homing_rate is reset each time through this loop, so it doesn't keep increasing
-
-    limit_approach = approach;  //limit_approach bits is high if approaching limit switch 
-
     // Perform homing cycle. Planner buffer should be empty, as required to initiate the homing cycle.
-    plan_buffer_line(target, homing_rate, false, LINENUMBER_EMPTY_BLOCK); // Bypass mc_line(). Directly plan homing motion.
+    plan_buffer_line(target, homing_rate, false, LINENUMBER_EMPTY_BLOCK);  // Bypass mc_line(). Directly plan homing motion.
 
 	 // axislock bit is high if axis is homing, so we only enable checking on moving axes.
     limits_enable(axislock,~approach);  //expect 0 on approach (stop when 1). vice versa for pulloff
-    limits.homenext =0;
+    limits.ishoming =1;
 
     st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
     st_wake_up(); // Initiate motion
 
     do {
       st_prep_buffer(); // Check and prep segment buffer. NOTE: Should take no longer than 200us.
-      // Check only for user reset. No time to run protocol_execute_runtime() in this loop.
+      // Check only for user reset. Keyme: fixed to allow protocol_execute_runtime() in this loop.
       protocol_execute_runtime();
-      if (SYS_EXEC & EXEC_RESET) { protocol_execute_runtime(); return; }
+      if (SYS_EXEC & EXEC_RESET) { 
+        protocol_execute_runtime(); return; 
+      }
 
       // Check if we never reached limit switch.  call it a Probe fail.
       if (SYS_EXEC & EXEC_CYCLE_STOP) {
+        sys.alarm |= ALARM_HOME_FAIL;
         SYS_EXEC|=EXEC_CRIT_EVENT;
         protocol_execute_runtime();
         return;
       }
-    } while (!limits.homenext);  //stepper isr sets this when limit is hit
+    } while (limits.ishoming);  //stepper isr sets this when limit is hit
 
     limits_disable();
     st_reset(); // Immediately force kill steppers and reset step segment buffer.
     plan_reset(); // Reset planner buffer. Zero planner positions. Ensure homing motion is cleared.
 
+
+    if (!approach){
+      linenumber_insert(LINENUMBER_SPECIAL|(homing_line_number*4+LINEMASK_OFF_EDGE));
+      request_eol_report();
+      protocol_execute_runtime();
+    }
+  
     delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
 
     // Reverse direction and reset homing rate for locate cycle(s).
-    homing_rate = settings.homing_feed_rate;
     approach = ~approach; //toggle all bits
+    homing_rate = settings.homing_feed_rate * sqrt(n_active_axis); ;
+    
 
   } while (n_cycle-- > 0);
 
-  //force report of known position for compare to zero.
-  linenumber_insert(LINENUMBER_SPECIAL|homing_line_number++);
+  //force report of reference position for compare to zero.
+  linenumber_insert(LINENUMBER_SPECIAL|(homing_line_number*4+LINEMASK_ON_EDGE));
   request_eol_report();
   protocol_execute_runtime();
 
@@ -218,14 +221,17 @@ void limits_go_home(uint8_t cycle_mask)
         sys.position[idx] = -settings.homing_pulloff*settings.steps_per_mm[idx];
         target[idx] = 0;
       }
-      if (settings.homing_pulloff == 0.0) {request_eol_report(); } //force report if we are not going to move  TODO TEST
+      if (settings.homing_pulloff == 0.0) {request_eol_report(); } //force report if we are not going to move 
     } else { // Non-active cycle axis. Set target to not move during pull-off.
       target[idx] = (float)sys.position[idx]/settings.steps_per_mm[idx];
     }
   }
   plan_sync_position(); // Sync planner position to current machine position for pull-off move.
 
-  plan_buffer_line(target, min_seek_rate, false, LINENUMBER_SPECIAL|homing_line_number++); // Bypass mc_line(). Directly plan motion.
+  // Bypass mc_line(). Directly plan motion back to 0.  Report linenumber when done.
+  plan_buffer_line(target, min_seek_rate, false, LINENUMBER_SPECIAL|(homing_line_number*4+LINEMASK_HOMED));
+  homing_line_number++;
+            
 
   // Initiate pull-off using main motion control routines.
   // TODO : Clean up state routines so that this motion still shows homing state.
@@ -260,6 +266,7 @@ void limits_soft_check(float *target)
       }
 
       mc_reset(); // Issue system reset and ensure spindle and coolant are shutdown.
+      sys.alarm |= ALARM_SOFT_LIMIT;
       SYS_EXEC |= (EXEC_ALARM | EXEC_CRIT_EVENT); // Indicate soft limit critical event
       protocol_execute_runtime(); // Execute to enter critical event loop and system abort
       return;

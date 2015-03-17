@@ -47,5 +47,7 @@ void st_update_plan_block_parameters();
 //called periodically to see if we should disable steppers
 void st_check_disable(); 
 
+// Call with 1 to force idle lock on always (braking), 0 to return to eeprom setting
+void st_force_idle_lock(uint8_t lock);
 
 #endif

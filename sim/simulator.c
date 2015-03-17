@@ -42,10 +42,12 @@ uint8_t limit_invert = 0;
 //local prototypes 
 void print_steps(bool force);
 void sim_monitor_step_port(uint8_t portval);
+void sim_monitor_disable_port(uint8_t portval);
 
 
 io_sim_monitor_t port_monitors[] =  {
   {&STEP_DDR,sim_monitor_step_port},
+  {&STEPPERS_DISABLE_DDR,sim_monitor_disable_port},
   {0,0}
 };
 
@@ -141,6 +143,12 @@ void simulate_limits(int idx, int raw_steps) {
 }
 
 
+
+void sim_monitor_disable_port(uint8_t portval) {
+  static uint8_t ld=1;
+  if (ld !=portval)
+  printf("disabled = %x\n",ld=portval);
+}
 
 void sim_monitor_step_port(uint8_t portval) {
   static uint8_t last_step_state=0;

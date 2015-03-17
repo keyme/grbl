@@ -287,6 +287,7 @@ void mc_probe_cycle(float *target, float feed_rate, uint8_t invert_feed_rate, li
   if (probe_fail) {
     //set 'probe position' to current position so that it doesn't move anymore
     memcpy(sys.probe_position, sys.position, sizeof(float)*N_AXIS);
+    // this is where we would set an alarm if we wanted one.
   }
   protocol_execute_runtime();   // Check and execute run-time commands
   if (sys.abort) { return; } // Check for system abort
@@ -338,8 +339,20 @@ void mc_reset()
     // the steppers enabled by avoiding the go_idle call altogether, unless the motion state is
     // violated, by which, all bets are off.
     if (sys.state & (STATE_CYCLE | STATE_HOLD | STATE_HOMING)) {
+      sys.alarm |= ALARM_ABORT_CYCLE;  //killed while in motion
       SYS_EXEC |= EXEC_ALARM; // Flag main program to execute alarm state.
       st_go_idle(); // Force kill steppers. Position has likely been lost.
     }
   }
+}
+
+
+// Method to stop motion in progress and clear the queues
+void mc_abort() { 
+  SYS_EXEC |= EXEC_FEED_HOLD;  //Stop motion;
+  while (sys.state & (STATE_CYCLE)) protocol_execute_runtime(); //spin untill stopped
+  st_reset  (); // Immediately force kill steppers and reset step segment buffer.
+  plan_reset(); // Reset planner buffer. Zero planner positions. Ensure probe motion is cleared.
+  plan_sync_position(); // Sync planner position to current machine position.
+  sys.state = STATE_IDLE;
 }

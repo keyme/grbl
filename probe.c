@@ -32,12 +32,6 @@ void probe_init()
 }
 
 
-// Returns the probe pin state. Triggered = true. Called by gcode parser and probe state monitor.
-uint8_t probe_get_state()
-{
-  return(!(PROBE_PIN & PROBE_MASK));
-}
-
 // Monitors probe pin state and records the system position when detected. Called by the
 // stepper ISR per ISR tick.
 // NOTE: This function must be extremely efficient as to not bog down the stepper ISR.
@@ -50,6 +44,7 @@ void probe_state_monitor()
     SYS_EXEC |= EXEC_FEED_HOLD;
   }
   if (ESTOP_PIN & ESTOP_MASK) {
+    sys.alarm |= ALARM_ESTOP;
     SYS_EXEC |= (EXEC_FEED_HOLD|EXEC_ALARM|EXEC_CRIT_EVENT);
   }
 }

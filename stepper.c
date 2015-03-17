@@ -103,12 +103,12 @@ typedef struct {
 
   uint16_t step_count;       // Steps remaining in line segment motion  
   uint8_t exec_block_index; // Tracks the current st_block index. Change indicates new block.
-
   #ifdef STEP_PULSE_DELAY
     uint8_t step_bits;  // Stores out_bits output to complete the step pulse delay
   #endif
   st_block_t *exec_block;   // Pointer to the block data for the segment being executed
   segment_t *exec_segment;  // Pointer to the segment being executed
+  uint8_t idle_lock_time;
 } stepper_t;
 static stepper_t st;
 
@@ -148,7 +148,8 @@ typedef struct {
 static st_prep_t prep;
 
 static uint64_t st_shutdown_start;
-static uint16_t st_shutdown_delay;  //ms (max = 32767)  
+static uint16_t st_shutdown_delay;  //ms (max = 32767)
+static uint8_t  st_shutdown_axes;  
 
 /*    BLOCK VELOCITY PROFILE DEFINITION 
           __________________________
@@ -191,7 +192,7 @@ static uint16_t st_shutdown_delay;  //ms (max = 32767)
 
 //disable stepper output (0 to enable)
 void st_disable(uint8_t disable, uint8_t mask) {
-  if (mask & STEPPERS_LONG_LOCK_MASK) st_shutdown_start = 0;  //clear pending shutdown if we are enabling, or if it has pent.
+  st_shutdown_axes &= ~mask;   //clear pending shutdown if we are enabling, or if it has pent.
   if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { disable = !disable; } // Apply pin invert.
   if (disable) { STEPPERS_DISABLE_PORT |= (STEPPERS_DISABLE_MASK&mask); }
   else { STEPPERS_DISABLE_PORT &= ~(STEPPERS_DISABLE_MASK&mask); }
@@ -226,7 +227,6 @@ void st_wake_up()
   }
 }
 
-
 // Stepper shutdown
 void st_go_idle() 
 {
@@ -236,30 +236,34 @@ void st_go_idle()
   busy = false;
   
   // Set stepper driver idle state, disabled or enabled, depending on settings and circumstances.
-    // Force stepper dwell to lock axes for a defined amount of time to ensure the axes come to a complete
-    // stop and not drift from residual inertial forces at the end of the last movement.
-  bool do_disable = false; // Keep enabled.
-  uint8_t mask = ~0; //all axes
+  // Force stepper dwell to lock axes for a defined amount of time to ensure the axes come to a complete
+  // stop and not drift from residual inertial forces at the end of the last movement.
   if (sys.state != STATE_HOMING) {
-    if (bit_istrue(SYS_EXEC, EXEC_ALARM)) {
-      do_disable = true;  //disable all on alarm.
+    if (bit_istrue(SYS_EXEC, EXEC_ALARM) || !st.idle_lock_time) {
+      st_disable(true, STEPPERS_DISABLE_MASK);       //disable all on alarm or 0 lock
     }
-    else if (settings.stepper_idle_lock_time != 0xff) { //else not always on
-      st_shutdown_delay = settings.stepper_idle_lock_time*STEPPERS_LOCK_TIME_MULTIPLE;
-      st_shutdown_start = masterclock|1; //use nearest odd number to handle rare case of mc==0
-
-      delay_ms(settings.stepper_idle_lock_time);
-      do_disable = true;  //disable most axes now.
-      mask = ~STEPPERS_LONG_LOCK_MASK;
+    else if (st.idle_lock_time != 0xff) { //else not always on
+      st_shutdown_start = masterclock; 
+      st_shutdown_delay = st.idle_lock_time; //set timer for short delay
+      st_shutdown_axes = STEPPERS_DISABLE_MASK; //all axes
     }
   }
-  st_disable(do_disable, mask);
-
 }
 
 void st_check_disable() {
-  if (st_shutdown_start && ((uint16_t)(masterclock - st_shutdown_start) > st_shutdown_delay)) {
-    st_disable(true, STEPPERS_LONG_LOCK_MASK);  //disable long-dwell axes after timeout
+  if (st_shutdown_axes && 
+      ((uint16_t)(masterclock - st_shutdown_start) > st_shutdown_delay)) {
+    uint8_t short_dwell_axes = st_shutdown_axes & ~STEPPERS_LONG_LOCK_MASK;
+    if (short_dwell_axes){ //short shutdowns pending?
+      st_disable(true, short_dwell_axes);  //disable short-dwell axes
+      st_shutdown_delay *= STEPPERS_LOCK_TIME_MULTIPLE; //set up long dwell timeout
+    }
+    else {
+      st_disable(true, st_shutdown_axes);  //disable long-dwell axes after timeout
+    }
+    //Note: the st_disable call clears st_shutdown_axes of any_axes passed to it.
+    // That ensures that a): this function stops checking timeouts when no axes left to shutdown
+    // and b) enabling axes through st_disable(false,) clears any pending shutdown
   }
 }
 
@@ -440,12 +444,15 @@ ISR(TIMER1_COMPA_vect)
   if (must_stop) {
     st.step_outbits &= ~(must_stop>>LIMIT_BIT_SHIFT);
     if (!st.step_outbits) {
-      limits.homenext|=1;
+      limits.ishoming=0; //if all axes at correct limit state, homing phase is over
+      request_report(REQUEST_STATUS_REPORT|REQUEST_LIMIT_REPORT,LINENUMBER_EMPTY_BLOCK);
     }
+    //if limits made but not homing or alarmed already: critical alarm.
     if ( !(sys.state & (STATE_ALARM|STATE_HOMING)) && 
          bit_isfalse(SYS_EXEC,EXEC_ALARM)) {
       mc_reset(); // Initiate system kill.
       // Indicate hard limit critical event, print limits
+      sys.alarm |= ALARM_HARD_LIMIT;
       request_report(REQUEST_LIMIT_REPORT,(EXEC_ALARM | EXEC_CRIT_EVENT));
     }
   }
@@ -518,17 +525,14 @@ void st_reset()
 
 
 void keyme_init(){
-#ifdef KEYME_BOARD
   //PORTG0 for drive enable
   ESTOP_DDR  |= (1<<RUN_ENABLE_BIT);    //set enable as outupt
   ESTOP_DDR  &= ~(ESTOP_BIT);           //estop as input
   ESTOP_PORT |= (1<<RUN_ENABLE_BIT);  //allow motors to run
   ESTOP_PORT &= ~(ESTOP_BIT);           //estop input normal-low
 
-
   //Microstepping
   MS_DDR = MS_MASK; //all output
-
 
   MS_PORT = settings.microsteps&MS_MASK;
   //Phase Current Decay. 
@@ -547,7 +551,6 @@ void keyme_init(){
   //Setup IO Reset Port
   IO_RESET_DDR |= IO_RESET_MASK;
   IO_RESET_PORT &= ~IO_RESET_MASK; //don't reset
-#endif
 }
 
 
@@ -577,9 +580,10 @@ void stepper_init()
   #ifdef STEP_PULSE_DELAY
     TIMSK0 |= (1<<OCIE0A); // Enable Timer0 Compare Match A interrupt
   #endif
+
   //Setup KeyMe specific ports
   keyme_init();
-
+  st_force_idle_lock(0);  //use EEPROM settings by default
 }
   
 
@@ -927,6 +931,9 @@ void st_prep_buffer()
 }      
 
 
+void st_force_idle_lock(uint8_t lock) {
+  st.idle_lock_time = lock? 0xFF : settings.stepper_idle_lock_time;
+}
  
 /* 
    TODO: With feedrate overrides, increases to the override value will not significantly

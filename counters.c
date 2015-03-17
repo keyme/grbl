@@ -31,10 +31,8 @@ counters_t counters = {{0}};
 void counters_init() 
 {
   //encoders and feedback //TODO: move to new file
-#ifdef KEYME_BOARD
   FDBK_DDR &= ~(FDBK_MASK); // Configure as input pins
-  FDBK_PORT |= FDBK_MASK;   // Enable internal pull-up resistors. Normal high operation. //TODO test
-#endif
+  FDBK_PORT |= FDBK_MASK;   // Enable internal pull-up resistors. Normal high operation. 
   counters.state = FDBK_PIN&FDBK_MASK; //record initial state
 
   counters_enable(0); //default to no encoder
@@ -69,26 +67,16 @@ count_t counters_get_count(uint8_t axis)
   return counters.counts[axis];
 }
 
-uint8_t counters_get_state(){
-  return counters.state;
-}
-
-int16_t counters_get_idx(){
-  return counters.idx;
-}
-
 
 int debounce(uint32_t* bounce_clock, int16_t lockout_ms) {
   uint32_t clock = masterclock;
   //allow another reading if lockout has expired 
-  //  (or if clock has rolled over - otherwise we could wait forever )
-  if ( clock > (*bounce_clock + lockout_ms) || (clock < *bounce_clock) ) {
+  if ( (uint32_t)(clock - *bounce_clock) >= lockout_ms ) {
     *bounce_clock = clock;
     return 1;
   }
   return 0;
 }
-
 
 
 ISR(FDBK_INT_vect) {
@@ -112,7 +100,7 @@ ISR(FDBK_INT_vect) {
       }
   }
 
-  //count rotary axis alignment pulses.
+  //count conveyor axis alignment pulses.
   if (change & (1<<ALIGN_SENSE_BIT)) { //sensor changed
     if (debounce(&alignment_debounce_timer, PROBE_DEBOUNCE_DELAY_MS)){
       if (!(state&PROBE_MASK)) { //low is on.

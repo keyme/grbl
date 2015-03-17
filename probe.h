@@ -29,8 +29,8 @@
 // Probe pin initialization routine.
 void probe_init();
 
-// Returns probe pin state.
-uint8_t probe_get_state();
+// Returns probe pin state. Triggered = true. Called by gcode parser and probe state monitor.
+#define probe_get_state() (!(PROBE_PIN & PROBE_MASK))
 
 // Monitors probe pin state and records the system position when detected. Called by the
 // stepper ISR per ISR tick.

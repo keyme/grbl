@@ -92,8 +92,8 @@ int main(void)
     // Reset system variables.
     sys.abort = false;
     SYS_EXEC = 0;
-    if (bit_istrue(settings.flags,BITFLAG_AUTO_START)) { sys.auto_start = true; }
-    else { sys.auto_start = false; }
+    if (bit_istrue(settings.flags,BITFLAG_AUTO_START)) { sys.flags |= SYSFLAG_AUTOSTART; }
+    else { sys.flags &= ~SYSFLAG_AUTOSTART; }
           
     // Start Grbl main loop. Processes program inputs and executes them.
     protocol_main_loop();

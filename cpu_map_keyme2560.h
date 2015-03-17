@@ -4,9 +4,6 @@
 
 #define GRBL_PLATFORM "KeyMe 2560"
 
-//KeyMe specific control pins
-#define KEYME_BOARD
-
 // Serial port pins
 #define SERIAL_RX USART0_RX_vect
 #define SERIAL_UDRE USART0_UDRE_vect
@@ -140,10 +137,9 @@
   #define SPINDLE_PWM_BIT		6 // Atmega2560 pin X / Arduino Digital Pin 9
 #endif // End of VARIABLE_SPINDLE
 
-#ifdef KEYME_BOARD
-  #define ESTOP_DDR DDRG
-  #define ESTOP_PORT PORTG 
-  #define ESTOP_PIN PING
+#define ESTOP_DDR DDRG
+#define ESTOP_PORT PORTG 
+#define ESTOP_PIN PING
 
 #define RUN_ENABLE_BIT  0
 #define ESTOP_BIT  2
@@ -204,7 +200,6 @@
 #define IO_RESET_MASK (1<<IO_RESET_BIT)
 #endif
 
-#endif
 
 
 

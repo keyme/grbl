@@ -38,15 +38,6 @@ void protocol_main_loop();
 // Checks and executes a runtime command at various stop points in main program
 void protocol_execute_runtime();
 
-// Notify the stepper subsystem to start executing the g-code program in buffer.
-// void protocol_cycle_start();
-
-// Reinitializes the buffer after a feed hold for a resume.
-// void protocol_cycle_reinitialize(); 
-
-// Initiates a feed hold of the running program
-// void protocol_feed_hold();
-
 // Executes the auto cycle feature, if enabled.
 void protocol_auto_cycle_start();
 

@@ -116,56 +116,6 @@ void delay_ms(uint16_t ms)
 }
 
 
-// Delays variable defined microseconds. Compiler compatibility fix for _delay_us(),
-// which only accepts constants in future compiler releases. Written to perform more 
-// efficiently with larger delays, as the counter adds parasitic time in each iteration.
-void delay_us(uint32_t us) 
-{
-  while (us) {
-    if (us < 10) { 
-      _delay_us(1);
-      us--;
-    } else if (us < 100) {
-      _delay_us(10);
-      us -= 10;
-    } else if (us < 1000) {
-      _delay_us(100);
-      us -= 100;
-    } else {
-      _delay_ms(1);
-      us -= 1000;
-    }
-  }
-}
-
-
-// Returns direction mask according to Grbl internal axis indexing.
-uint8_t get_direction_mask(uint8_t axis_idx)
-{
-  uint8_t axis_mask = 0;
-  switch( axis_idx ) {
-    case X_AXIS: axis_mask = (1<<X_DIRECTION_BIT); break;
-    case Y_AXIS: axis_mask = (1<<Y_DIRECTION_BIT); break;
-    case Z_AXIS: axis_mask = (1<<Z_DIRECTION_BIT); break;
-    case C_AXIS: axis_mask = (1<<C_DIRECTION_BIT); break;
-  }
-  return(axis_mask);
-}
-
-// Returns step mask according to Grbl internal axis indexing.
-uint8_t get_step_mask(uint8_t axis_idx)
-{
-  uint8_t axis_mask = 0;
-  switch( axis_idx ) {
-    case X_AXIS: axis_mask = (1<<X_STEP_BIT); break;
-    case Y_AXIS: axis_mask = (1<<Y_STEP_BIT); break;
-    case Z_AXIS: axis_mask = (1<<Z_STEP_BIT); break;
-    case C_AXIS: axis_mask = (1<<C_STEP_BIT); break;
-  }
-  return(axis_mask);
-}
-
-
 uint8_t get_axis_idx(char axis_letter)
 {
   uint8_t axis_idx = N_AXIS; //error indicator

@@ -25,6 +25,7 @@
 #include "report.h"
 #include "print.h"
 #include "counters.h"
+#include "stepper.h"
 
 
 uint32_t masterclock=0;  
@@ -112,7 +113,7 @@ uint8_t system_execute_line(char *line)
         // Don't run startup script. Prevents stored moves in startup from causing accidents.
       } // Otherwise, no effect.
       break;      
-#ifdef KEYME_BOARD
+      /* KEYME SPECIFIC */
      case 'E': {
        char axis = line[++char_counter];
         if ( axis != 0 ) {
@@ -126,34 +127,41 @@ uint8_t system_execute_line(char *line)
             counters_reset(axis);
           }
         }
-        return STATUS_ALT_REPORT(REQUEST_COUNTER_REPORT);
-     }
+      }
+      return STATUS_ALT_REPORT(REQUEST_COUNTER_REPORT);
+    case 'B': 
+      helper_var = line[++char_counter];
+      if ( helper_var == 0 ||  line[++char_counter] != 0 ) {  
+        return(STATUS_INVALID_STATEMENT); 
+      }
+      helper_var -= '0';  //force to 1 or 0
+      if (helper_var > 1) { return(STATUS_INVALID_STATEMENT); }
+      st_force_idle_lock(helper_var);
       break;
     case 'S':
       if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
       return STATUS_ALT_REPORT(REQUEST_VOLTAGE_REPORT);
-      break;
     case 'R':
       if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
       IO_RESET_PORT |= IO_RESET_MASK;  //reset IO.  Will re-enable in loop
       break;
-      
-      
-
-#endif
+  case 'Z': //zero the current buffers
+      if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
+      mc_abort();
+      break;
          
-//  case 'J' : break;  // Jogging methods
-    // TODO: Here jogging can be placed for execution as a seperate subprogram. It does not need to be 
-    // susceptible to other runtime commands except for e-stop. The jogging function is intended to
-    // be a basic toggle on/off with controlled acceleration and deceleration to prevent skipped 
-    // steps. The user would supply the desired feedrate, axis to move, and direction. Toggle on would
-    // start motion and toggle off would initiate a deceleration to stop. One could 'feather' the
-    // motion by repeatedly toggling to slow the motion to the desired location. Location data would 
-    // need to be updated real-time and supplied to the user through status queries.
-    //   More controlled exact motions can be taken care of by inputting G0 or G1 commands, which are 
-    // handled by the planner. It would be possible for the jog subprogram to insert blocks into the
-    // block buffer without having the planner plan them. It would need to manage de/ac-celerations 
-    // on its own carefully. This approach could be effective and possibly size/memory efficient.        
+      //  case 'J' : break;  // Jogging methods
+      // TODO: Here jogging can be placed for execution as a seperate subprogram. It does not need to be 
+      // susceptible to other runtime commands except for e-stop. The jogging function is intended to
+      // be a basic toggle on/off with controlled acceleration and deceleration to prevent skipped 
+      // steps. The user would supply the desired feedrate, axis to move, and direction. Toggle on would
+      // start motion and toggle off would initiate a deceleration to stop. One could 'feather' the
+      // motion by repeatedly toggling to slow the motion to the desired location. Location data would 
+      // need to be updated real-time and supplied to the user through status queries.
+      //   More controlled exact motions can be taken care of by inputting G0 or G1 commands, which are 
+      // handled by the planner. It would be possible for the jog subprogram to insert blocks into the
+      // block buffer without having the planner plan them. It would need to manage de/ac-celerations 
+      // on its own carefully. This approach could be effective and possibly size/memory efficient.        
     default : 
       // Block any system command that requires the state as IDLE/ALARM. (i.e. EEPROM, homing)
       if ( !(sys.state == STATE_IDLE || sys.state == STATE_ALARM) ) { return(STATUS_IDLE_ERROR); }

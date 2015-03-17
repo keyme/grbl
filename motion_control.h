@@ -46,4 +46,7 @@ void mc_probe_cycle(float *target, float feed_rate, uint8_t invert_feed_rate, li
 // Performs system reset. If in motion state, kills all motion and sets system alarm.
 void mc_reset();
 
+// Aborts current motion.  Stops steppers smoothly, clears buffer
+void mc_abort();
+
 #endif

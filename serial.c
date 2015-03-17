@@ -41,20 +41,6 @@ volatile uint8_t tx_buffer_tail = 0;
 uint8_t checksum = 0;  //sum all bytes between newlines.
 
 
-#ifdef ENABLE_XONXOFF
-  volatile uint8_t flow_ctrl = XON_SENT; // Flow control state variable
-  
-  // Returns the number of bytes in the RX buffer. This replaces a typical byte counter to prevent
-  // the interrupt and main programs from writing to the counter at the same time.
-  static uint8_t get_rx_buffer_count()
-  {
-    if (rx_buffer_head == rx_buffer_tail) { return(0); }
-    if (rx_buffer_head < rx_buffer_tail) { return(rx_buffer_tail-rx_buffer_head); }
-    return (RX_BUFFER_SIZE - (rx_buffer_head-rx_buffer_tail));
-  }
-#endif
-
-
 void serial_init()
 {
   // Set baud rate
@@ -116,15 +102,6 @@ ISR(SERIAL_UDRE)
 {
   uint8_t tail = tx_buffer_tail; // Temporary tx_buffer_tail (to optimize for volatile)
   
-  #ifdef ENABLE_XONXOFF
-    if (flow_ctrl == SEND_XOFF) { 
-      UDR0 = XOFF_CHAR; 
-      flow_ctrl = XOFF_SENT; 
-    } else if (flow_ctrl == SEND_XON) { 
-      UDR0 = XON_CHAR; 
-      flow_ctrl = XON_SENT; 
-    } else
-  #endif
   { 
     // Send a byte from the buffer	
     UDR0 = tx_buffer[tail];
@@ -153,13 +130,6 @@ uint8_t serial_read()
     if (tail == RX_BUFFER_SIZE) { tail = 0; }
     rx_buffer_tail = tail;
 
-    #ifdef ENABLE_XONXOFF
-      if ((get_rx_buffer_count() < RX_BUFFER_LOW) && flow_ctrl == XOFF_SENT) { 
-        flow_ctrl = SEND_XON;
-        UCSR0B |=  (1 << UDRIE0); // Force TX
-      }
-    #endif
-    
     return data;
   }
 }
@@ -189,13 +159,6 @@ ISR(SERIAL_RX)
         rx_buffer[rx_buffer_head] = data;
         rx_buffer_head = next_head;    
         
-        #ifdef ENABLE_XONXOFF
-          if ((get_rx_buffer_count() >= RX_BUFFER_FULL) && flow_ctrl == XON_SENT) {
-            flow_ctrl = SEND_XOFF;
-            UCSR0B |=  (1 << UDRIE0); // Force TX
-          } 
-        #endif
-        
       }
       //TODO: else alarm on overflow?
   }
@@ -205,8 +168,4 @@ ISR(SERIAL_RX)
 void serial_reset_read_buffer() 
 {
   rx_buffer_tail = rx_buffer_head;
-
-  #ifdef ENABLE_XONXOFF
-    flow_ctrl = XON_SENT;
-  #endif
 }

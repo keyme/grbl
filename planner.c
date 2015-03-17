@@ -322,6 +322,7 @@ void plan_buffer_line(float *target, float feed_rate, uint8_t invert_feed_rate, 
   float inverse_unit_vec_value;
   float inverse_millimeters = 1.0/block->millimeters;  // Inverse millimeters to remove multiple float divides	
   float junction_cos_theta = 0;
+  float max_junction_speed_sqr;  // Junction entry speed limit based on direction vectors in (mm/min)^2  
   for (idx=0; idx<N_AXIS; idx++) {
     if (unit_vec[idx] != 0) {  // Avoid divide by zero.
       unit_vec[idx] *= inverse_millimeters;  // Complete unit vector calculation
@@ -343,7 +344,7 @@ void plan_buffer_line(float *target, float feed_rate, uint8_t invert_feed_rate, 
   
     // Initialize block entry speed as zero. Assume it will be starting from rest. Planner will correct this later.
     block->entry_speed_sqr = 0.0;
-    block->max_junction_speed_sqr = 0.0; // Starting from rest. Enforce start from zero velocity.
+    max_junction_speed_sqr = 0.0; // Starting from rest. Enforce start from zero velocity.
   
   } else {
     /* 
@@ -374,7 +375,7 @@ void plan_buffer_line(float *target, float feed_rate, uint8_t invert_feed_rate, 
 
     // TODO: Technically, the acceleration used in calculation needs to be limited by the minimum of the
     // two junctions. However, this shouldn't be a significant problem except in extreme circumstances.
-    block->max_junction_speed_sqr = max( MINIMUM_JUNCTION_SPEED*MINIMUM_JUNCTION_SPEED,
+    max_junction_speed_sqr = max( MINIMUM_JUNCTION_SPEED*MINIMUM_JUNCTION_SPEED,
                                  (block->acceleration * settings.junction_deviation * sin_theta_d2)/(1.0-sin_theta_d2) );
   }
 
@@ -382,7 +383,7 @@ void plan_buffer_line(float *target, float feed_rate, uint8_t invert_feed_rate, 
   block->nominal_speed_sqr = feed_rate*feed_rate; // (mm/min). Always > 0
   
   // Compute the junction maximum entry based on the minimum of the junction speed and neighboring nominal speeds.
-  block->max_entry_speed_sqr = min(block->max_junction_speed_sqr, 
+  block->max_entry_speed_sqr = min(max_junction_speed_sqr, 
                                    min(block->nominal_speed_sqr,pl.previous_nominal_speed_sqr));
   
   // Update previous path unit_vector and nominal speed (squared)

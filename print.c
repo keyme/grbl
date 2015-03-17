@@ -41,26 +41,6 @@ void printPgmString(const char *s)
     serial_write(c);
 }
 
-// void printIntegerInBase(unsigned long n, unsigned long base)
-// { 
-// 	unsigned char buf[8 * sizeof(long)]; // Assumes 8-bit chars. 
-// 	unsigned long i = 0;
-// 
-// 	if (n == 0) {
-// 		serial_write('0');
-// 		return;
-// 	} 
-// 
-// 	while (n > 0) {
-// 		buf[i++] = n % base;
-// 		n /= base;
-// 	}
-// 
-// 	for (; i > 0; i--)
-// 		serial_write(buf[i - 1] < 10 ?
-// 			'0' + buf[i - 1] :
-// 			'A' + buf[i - 1] - 10);
-// }
 
 void print_uint8_base2(uint8_t n)
 { 
