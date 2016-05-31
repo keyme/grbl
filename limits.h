@@ -22,6 +22,10 @@
 #ifndef limits_h
 #define limits_h 
 
+// Value is used for homing when the flag crosses the beam. It
+// should be changed if the flag size increases.
+#define MAXFLAGLEN 40.0
+
 typedef struct {
   uint8_t expected;
   uint8_t active;
