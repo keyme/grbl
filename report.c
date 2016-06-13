@@ -48,9 +48,9 @@
 // NOTE: In silent mode, all error codes are greater than zero.
 // TODO: Install silent mode to return only numeric values, primarily for GUIs.
 void report_status_message(uint8_t status_code)
-{
+{ 
+  printInteger(status_code);
   if (status_code == 0) { // STATUS_OK
-    printPgmString(PSTR("ok\r\n"));
   } else if (status_code & STATUS_QUIET_OK) {
     // protocol can return a 'QUIET_OK' status meaning don't print OK, print something else instead
     if (0!= (status_code&=~STATUS_QUIET_OK)) {
@@ -165,6 +165,7 @@ void report_grbl_help() {
                       "! (feed hold)\r\n"
                       "? (current status)\r\n"
                       "^ (limit pins)\r\n"
+		      "| (voltage report)\r\n"
                       "ctrl-x (reset Grbl)\r\n"));
 }
 
@@ -392,65 +393,84 @@ void report_voltage()
   // instance of a session, but then it goes to nonsense.
   // Better to just skip it, or we may mess up the
   // reading of the feedback sensor analog.
-  /*
+  
+  // Enable ADC, start conversion, prescaler of 128x
+  //print_uint8_base2(ADCSRA);
   uint8_t adcNum;
-  for (adcNum=0; adcNum<4; adcNum++)
-  {
-    // Enable ADC, start conversion, prescaler of 128x
-    ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+  voltage_result_index = 0;
+  ADCSRA =(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
 
+  //ADMUX = (1<<REFS0);
+  for (adcNum=0; adcNum<5; adcNum++)
+  {
+
+    ADCSRA |= (1<<ADEN);
     // Set MUX to the channel
-    ADMUX = ((1<<REFS0) + adcNum);
+    
+    //print_uint8_base2(ADMUX);
+    //printString("\n");
+    
+    // Enable ADC interrupt
+    ADCSRA |= (1<<ADIE);
 
     // Enable capture of ADC
     ADCSRA |= (1<<ADSC);
 
     // Wait for the result
+    //while(1);
     while(ADCSRA & (1<<ADSC));
 
+    //ADCSRA &= ~(1<<ADEN);
+
     // Print the result
-    printInteger(ADC);
-    printPgmString(PSTR(","));
+    //printInteger(ADC*24.0/1023.0);
+    //printPgmString(PSTR(","));
 
     // Disable ADC
-    ADCSRA = (0<<ADEN);
+    //ADCSRA = (0<<ADEN);
   }
-  */
-  // Remove thise line when the analogs above work properly
-  printPgmString(PSTR("0,0,0,0,"));
+  
+  /*// Remove thise line when the analogs above work properly
+  //printPgmString(PSTR("0,0,0,0,"));
 
   /////////////
-
+  
+  
   // Enable ADC, start conversion, prescaler of 128x
-  ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+  //ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
 
   // Set read bit to be the special feedback bit (ADC14)
   // This is bit select 6, plus
-  ADMUX = ((1<<REFS0) + (FVOLT_ADC));
-  ADCSRB = (1<<MUX5_BIT);
+  //ADMUX = ((1<<REFS0) + (FVOLT_ADC));
+  //ADCSRB = (1<<MUX5_BIT);
   // Enable capture of ADC
   ADCSRA |= (1<<ADSC);
   // Wait for the result
   while(ADCSRA & (1<<ADSC));
   // Print the result
-  printInteger(ADC);
+  //printInteger(ADC*24.0/1023.0);
+  */
 
   // Disable ADC
-  ADCSRA = (0<<ADEN);
-
+  ADCSRA ^= (1<<ADEN);
+  
+  int i;
+  for (i = 0; i<5; i++){
+    printInteger(voltage_result[i]*24.0/1023.0);
+    printPgmString(PSTR(","));
+  }
   //////////
 
   printPgmString(PSTR("|"));
   printPgmString(PSTR("\r\n"));
 }
 
+
  // Prints real-time data. This function grabs a real-time snapshot of the stepper subprogram
  // and the actual location of the CNC machine. Users may change the following function to their
  // specific needs, but the desired real-time data report must be as short as possible. This is
  // requires as it minimizes the computational overhead and allows grbl to keep running smoothly,
  // especially during g-code programs with fast, short line segments and high frequency reports (5-20Hz).
-
-
 
 uint8_t report_realtime_status()
 {
@@ -466,7 +486,7 @@ uint8_t report_realtime_status()
   float print_position[N_AXIS];
 
   // Report current machine state
-  switch (sys.state) {
+  /*switch (sys.state) {
     case STATE_IDLE: printPgmString(PSTR("<Idle")); break;
     case STATE_QUEUED: printPgmString(PSTR("<Queue")); break;
     case STATE_CYCLE: printPgmString(PSTR("<Run")); break;
@@ -474,28 +494,28 @@ uint8_t report_realtime_status()
     case STATE_HOMING: printPgmString(PSTR("<Home")); break;
     case STATE_ALARM: printPgmString(PSTR("<Alarm")); break;
     case STATE_CHECK_MODE: printPgmString(PSTR("<Check")); break;
-  }
+  }*/
 
   // Report machine position
-  printPgmString(PSTR(":"));
+  //printPgmString(PSTR(":"));
   for (i=0; i< N_AXIS-1; i++) {
     //switch to work position
     print_position[i] = current_position[i]/settings.steps_per_mm[i];
     print_position[i] -= gc_state.coord_system[i]+gc_state.coord_offset[i];
-    printFloat_CoordValue(print_position[i]);
-    printPgmString(PSTR(","));
+    //printFloat_CoordValue(print_position[i]);
+    //printPgmString(PSTR(","));
   }
   print_position[i] = current_position[i]/settings.steps_per_mm[i];
   print_position[i] -= gc_state.coord_system[i]+gc_state.coord_offset[i];
-  printFloat_CoordValue(print_position[i]);
+  //printFloat_CoordValue(print_position[i]);
 
   // Report work position
-  printPgmString(PSTR(":"));
+  //printPgmString(PSTR(":"));
   for (i=0;i< N_AXIS-1; i++) {
-    printInteger(current_position[i]);
-    printPgmString(PSTR(","));
+    //printInteger(current_position[i]);
+    //printPgmString(PSTR(","));
   }
-  printInteger(current_position[i]);
+  //printInteger(current_position[i]);
 
   // Report current line number
   if (sys.flags & SYSFLAG_EOL_REPORT) {
@@ -505,27 +525,9 @@ uint8_t report_realtime_status()
     }
   }
 
-  printPgmString(PSTR(":"));
-  printInteger(ln);
-  printPgmString(PSTR(">\r\n"));
-  
-  /*printPgmString(PSTR("test1Val: "));
-  print_uint32_base10(test1Val);
-  printPgmString(PSTR("\r\n"));
-
-  printPgmString(PSTR("max_travel: "));
-  printFloat_SettingValue(max_travel_Debug);
-  printPgmString(PSTR("\r\n"));
-
-  printPgmString(PSTR("homing_rate: "));
-  printFloat_RateValue(homing_rate_Debug);
-  printPgmString(PSTR("\r\n"));
-
-  printPgmString(PSTR("homing_pulloff: "));
-  printFloat_SettingValue(homing_pulloff_Debug);
-  printPgmString(PSTR("\r\n"));
-  */
-
+  //printPgmString(PSTR(":"));
+  //printInteger(ln);
+  //printPgmString(PSTR(">\r\n"));
 
   return (sys.flags & SYSFLAG_EOL_REPORT); //returns True if more work to do
 
@@ -537,9 +539,9 @@ void report_limit_pins()
   if (bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) {
          limit_state^=LIMIT_MASK;
   }
-  printPgmString(PSTR("/"));
+  /*printPgmString(PSTR("/"));
   printInteger((ESTOP_PIN>>ESTOP_BIT)&1);
   printInteger(probe_get_state()?1:0);
   print_uint8_base2(limit_state);
-  printPgmString(PSTR("/\r\n"));
+  printPgmString(PSTR("/\r\n"));*/
 }

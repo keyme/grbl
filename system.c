@@ -49,6 +49,10 @@ void system_init()
 
   OCR2A = 249;          //(249+1) * 64 prescale / 16Mhz = 1 ms
   OCR2B = 0;
+
+  // Setup clock for calculating motor voltages
+
+
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -308,3 +312,20 @@ linenumber_t linenumber_peek(){
   }
   return 0;
 }
+
+// This ISR is entered when ADC finishes reading voltage
+uint32_t voltage_result[5];
+uint8_t voltage_result_index;
+ISR(ADC_vect){
+  voltage_result[voltage_result_index] = (uint32_t)ADCL;
+  voltage_result[voltage_result_index] |= (((uint32_t)ADCH)<<8);
+  voltage_result_index++;
+  if (voltage_result_index != 5)
+    ADMUX = (1<<REFS0) + voltage_result_index;
+  else{
+    ADMUX = (1<<REFS0) + FVOLT_ADC;
+    ADCSRB = (1<<MUX5_BIT);
+  }
+
+}
+
