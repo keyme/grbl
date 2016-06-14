@@ -379,88 +379,15 @@ void report_counters()
   printPgmString(PSTR("}\r\n"));
 }
 
-//Prints voltage data: motor volts.
+// Prints voltage data for Motors (C,X,Y,Z) and Force sensor.
 void report_voltage()
 {
-  // Set the ADC Reference
-  ADMUX = (1<<REFS0);
-
-  // Begin character
+  uint8_t i;
   printPgmString(PSTR("|"));
-
-  // This block should work to read the 4 analogs connected
-  // to the 24V feed lines.  It does work once on each new
-  // instance of a session, but then it goes to nonsense.
-  // Better to just skip it, or we may mess up the
-  // reading of the feedback sensor analog.
-  
-  // Enable ADC, start conversion, prescaler of 128x
-  //print_uint8_base2(ADCSRA);
-  uint8_t adcNum;
-  voltage_result_index = 0;
-  ADCSRA =(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
-
-  //ADMUX = (1<<REFS0);
-  for (adcNum=0; adcNum<5; adcNum++)
-  {
-
-    ADCSRA |= (1<<ADEN);
-    // Set MUX to the channel
-    
-    //print_uint8_base2(ADMUX);
-    //printString("\n");
-    
-    // Enable ADC interrupt
-    ADCSRA |= (1<<ADIE);
-
-    // Enable capture of ADC
-    ADCSRA |= (1<<ADSC);
-
-    // Wait for the result
-    //while(1);
-    while(ADCSRA & (1<<ADSC));
-
-    //ADCSRA &= ~(1<<ADEN);
-
-    // Print the result
-    //printInteger(ADC*24.0/1023.0);
-    //printPgmString(PSTR(","));
-
-    // Disable ADC
-    //ADCSRA = (0<<ADEN);
-  }
-  
-  /*// Remove thise line when the analogs above work properly
-  //printPgmString(PSTR("0,0,0,0,"));
-
-  /////////////
-  
-  
-  // Enable ADC, start conversion, prescaler of 128x
-  //ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
-
-  // Set read bit to be the special feedback bit (ADC14)
-  // This is bit select 6, plus
-  //ADMUX = ((1<<REFS0) + (FVOLT_ADC));
-  //ADCSRB = (1<<MUX5_BIT);
-  // Enable capture of ADC
-  ADCSRA |= (1<<ADSC);
-  // Wait for the result
-  while(ADCSRA & (1<<ADSC));
-  // Print the result
-  //printInteger(ADC*24.0/1023.0);
-  */
-
-  // Disable ADC
-  ADCSRA ^= (1<<ADEN);
-  
-  int i;
   for (i = 0; i<5; i++){
     printInteger(voltage_result[i]*24.0/1023.0);
     printPgmString(PSTR(","));
   }
-  //////////
-
   printPgmString(PSTR("|"));
   printPgmString(PSTR("\r\n"));
 }
