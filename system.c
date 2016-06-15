@@ -50,11 +50,14 @@ void system_init()
   OCR2A = 249;          //(249+1) * 64 prescale / 16Mhz = 1 ms
   OCR2B = 0;
 
+  // Setup AutoTriggering for Voltage Monitoring
+  init_ADC();
+
   // Configure Timer 3: Voltage Monitoring Interrupt
-  TCCR3A = 0;
-  TCCR3B = 0;
-  TCCR3B |= (1 << CS12);    // 256 prescaler 
-  TIMSK3 |= (1 << TOIE1);   // enable timer overflow interrupt
+  //TCCR3A = 0;
+  //TCCR3B = 0;
+  //TCCR3B |= (1 << CS12);    // 256 prescaler 
+  //TIMSK3 |= (1 << TOIE1);   // enable timer overflow interrupt
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -65,6 +68,18 @@ ISR(TIMER2_COMPA_vect)
 
 
 /* KEY ME SPECIFIC START */
+
+void init_ADC(){
+  ADCSRB = 0;
+  ADCSRA = 0;
+  ADMUX = (1<<REFS0);//|(1<<ADLAR); // Set ADC reference
+  ADCSRA = (1<<ADPS2)|(1<<ADPS0); // Enable prescaler of 32x
+  ADCSRA |= (1<<ADIE); // Enable ADC interrupt
+  ADCSRA |= (1<<ADEN); // Enable ADC
+  ADCSRA |= (1<<ADATE); // Enable AutoTriggering
+  ADCSRB = (1<<ADTS2); // Start conversion on Timer0 Overflow
+}
+
 /* The Voltage Monitoring Interrupt: Timer3 COMPA interrupt handles enabling the ADC to
    calculate the the voltage of each motor (C,X,Y,Z) and the Force sensor when the timer
    3 counter overflows. */
@@ -74,7 +89,7 @@ ISR(TIMER2_COMPA_vect)
 //      interrupts could overlap.
 uint32_t voltage_result[5];
 uint8_t voltage_result_index = 0;
-ISR(TIMER3_OVF_vect)
+/*ISR(TIMER3_OVF_vect)
 {
   uint8_t adcNum;
   //voltage_result_index = 0; // index for votlage value array
@@ -101,28 +116,25 @@ ISR(TIMER3_OVF_vect)
   while(ADCSRA & (1<<ADSC)); // Wait for result
   voltage_result[5] = ADC;
   ADCSRA = 0;
-
   //ADCSRA=0;
-}
+}*/
 
 /* The ADC completion Interrupt: This interrupt occurs once ADC completes its conversion
    of target. Voltage value is stored in an array. Values in Array are printed on request
    in report_voltage(). */
-/*ISR(ADC_vect){
+ISR(ADC_vect){
   // Final conversion is a 10 bit value stored in ADCL and ADCH. ADCL must be accessed first.
-  voltage_result[voltage_result_index] = (uint32_t)ADCL;
-  voltage_result[voltage_result_index] |= (((uint32_t)ADCH)<<8);
-  voltage_result_index++;
-  if (voltage_result_index != 5)
-    ADMUX = (1<<REFS0) + voltage_result_index; // set next motor target for ADC
-  else{
+  voltage_result[voltage_result_index] = ADC;
+  //voltage_result_index++;
+  //if (voltage_result_index != 5)
+    //ADMUX |= (1<<REFS0) + voltage_result_index; // set next motor target for ADC
+  //else{
     // set force sensor as next target
     ADMUX = (1<<REFS0) + FVOLT_ADC;
-    ADCSRB = (1<<MUX5_BIT);
-    voltage_result_index = 0;
-  }
-
-}*/
+    ADCSRB |= (1<<MUX5_BIT);
+    //voltage_result_index = 0;
+  //}
+}
 
 /* KEY ME SPECIFIC END*/
 
