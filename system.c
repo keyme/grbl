@@ -50,14 +50,27 @@ void system_init()
   OCR2A = 249;          //(249+1) * 64 prescale / 16Mhz = 1 ms
   OCR2B = 0;
 
+  // Setup Timer1 for AutoTriggering
+  PRR0 &= ~(1<<PRTIM1);
+  TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC
+  TCCR1B |=  (1<<WGM12);
+  TCCR1B |= (1<<CS11)|(1<<CS10);
+  TCCR1A &= ~((1<<WGM11) | (1<<WGM10));
+  TCCR1A &= ~((1<<COM1A1) | (1<<COM1A0) | (1<<COM1B1) | (1<<COM1B0)); // Disconnect OC4 output
+  OCR1A = 0XFF;
+  OCR1B = 0XFF;
+  // TCCR4B = (TCCR4B & ~((1<<CS42) | (1<<CS41))) | (1<<CS40); // Set in st_go_idle().
+  //TIMSK4 &= ~(1<<OCIE4A);  // Set in st_go_idle().
+  //
+
   // Setup AutoTriggering for Voltage Monitoring
   init_ADC();
 
   // Configure Timer 3: Voltage Monitoring Interrupt
-  //TCCR3A = 0;
-  //TCCR3B = 0;
-  //TCCR3B |= (1 << CS12);    // 256 prescaler 
-  //TIMSK3 |= (1 << TOIE1);   // enable timer overflow interrupt
+  /*TCCR3A = 0;
+  TCCR3B = 0;
+  TCCR3B |= (1 << CS12);    // 256 prescaler 
+  TIMSK3 |= (1 << TOIE1);   // enable timer overflow interrupt*/
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -72,12 +85,12 @@ ISR(TIMER2_COMPA_vect)
 void init_ADC(){
   ADCSRB = 0;
   ADCSRA = 0;
-  ADMUX = (1<<REFS0);//|(1<<ADLAR); // Set ADC reference
+  ADMUX = (1<<REFS0); // Set ADC reference
   ADCSRA = (1<<ADPS2)|(1<<ADPS0); // Enable prescaler of 32x
   ADCSRA |= (1<<ADIE); // Enable ADC interrupt
   ADCSRA |= (1<<ADEN); // Enable ADC
   ADCSRA |= (1<<ADATE); // Enable AutoTriggering
-  ADCSRB = (1<<ADTS2); // Start conversion on Timer0 Overflow
+  ADCSRB = (1<<ADTS2)|(1<<ADTS0); // Start conversion on Timer1 CTC
 }
 
 /* The Voltage Monitoring Interrupt: Timer3 COMPA interrupt handles enabling the ADC to
@@ -123,17 +136,22 @@ uint8_t voltage_result_index = 0;
    of target. Voltage value is stored in an array. Values in Array are printed on request
    in report_voltage(). */
 ISR(ADC_vect){
+  TIFR1 |= (1<<OCF1A)|(1<<OCF1B); // clear these compare bits to allow for interrupts
   // Final conversion is a 10 bit value stored in ADCL and ADCH. ADCL must be accessed first.
   voltage_result[voltage_result_index] = ADC;
-  //voltage_result_index++;
-  //if (voltage_result_index != 5)
-    //ADMUX |= (1<<REFS0) + voltage_result_index; // set next motor target for ADC
-  //else{
+  voltage_result_index++;
+  if (voltage_result_index ==5)
+    voltage_result_index = 0;
+
+  if (voltage_result_index < 4){
+    ADCSRB &= ~(1<<MUX5_BIT);
+    ADMUX = (1<<REFS0) + voltage_result_index; // set next motor target for ADC
+  }
+  else{
     // set force sensor as next target
     ADMUX = (1<<REFS0) + FVOLT_ADC;
     ADCSRB |= (1<<MUX5_BIT);
-    //voltage_result_index = 0;
-  //}
+  }
 }
 
 /* KEY ME SPECIFIC END*/
