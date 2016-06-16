@@ -385,8 +385,9 @@ void report_voltage()
   uint8_t i;
   printPgmString(PSTR("|"));
   for (i = 0; i<5; i++){
-    printInteger(voltage_result[i]*24.0/1023.0);
-    printPgmString(PSTR(","));
+    printInteger(voltage_result[i]);
+    if (i<4)
+      printPgmString(PSTR(","));
   }
   printPgmString(PSTR("|"));
   printPgmString(PSTR("\r\n"));
@@ -413,7 +414,7 @@ uint8_t report_realtime_status()
   float print_position[N_AXIS];
 
   // Report current machine state
-  /*switch (sys.state) {
+  switch (sys.state) {
     case STATE_IDLE: printPgmString(PSTR("<Idle")); break;
     case STATE_QUEUED: printPgmString(PSTR("<Queue")); break;
     case STATE_CYCLE: printPgmString(PSTR("<Run")); break;
@@ -421,28 +422,28 @@ uint8_t report_realtime_status()
     case STATE_HOMING: printPgmString(PSTR("<Home")); break;
     case STATE_ALARM: printPgmString(PSTR("<Alarm")); break;
     case STATE_CHECK_MODE: printPgmString(PSTR("<Check")); break;
-  }*/
+  }
 
   // Report machine position
-  //printPgmString(PSTR(":"));
+  printPgmString(PSTR(":"));
   for (i=0; i< N_AXIS-1; i++) {
     //switch to work position
     print_position[i] = current_position[i]/settings.steps_per_mm[i];
     print_position[i] -= gc_state.coord_system[i]+gc_state.coord_offset[i];
-    //printFloat_CoordValue(print_position[i]);
-    //printPgmString(PSTR(","));
+    printFloat_CoordValue(print_position[i]);
+    printPgmString(PSTR(","));
   }
   print_position[i] = current_position[i]/settings.steps_per_mm[i];
   print_position[i] -= gc_state.coord_system[i]+gc_state.coord_offset[i];
-  //printFloat_CoordValue(print_position[i]);
+  printFloat_CoordValue(print_position[i]);
 
   // Report work position
-  //printPgmString(PSTR(":"));
+  printPgmString(PSTR(":"));
   for (i=0;i< N_AXIS-1; i++) {
-    //printInteger(current_position[i]);
-    //printPgmString(PSTR(","));
+    printInteger(current_position[i]);
+    printPgmString(PSTR(","));
   }
-  //printInteger(current_position[i]);
+  printInteger(current_position[i]);
 
   // Report current line number
   if (sys.flags & SYSFLAG_EOL_REPORT) {
@@ -452,9 +453,9 @@ uint8_t report_realtime_status()
     }
   }
 
-  //printPgmString(PSTR(":"));
-  //printInteger(ln);
-  //printPgmString(PSTR(">\r\n"));
+  printPgmString(PSTR(":"));
+  printInteger(ln);
+  printPgmString(PSTR(">\r\n"));
 
   return (sys.flags & SYSFLAG_EOL_REPORT); //returns True if more work to do
 
@@ -466,9 +467,9 @@ void report_limit_pins()
   if (bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) {
          limit_state^=LIMIT_MASK;
   }
-  /*printPgmString(PSTR("/"));
+  printPgmString(PSTR("/"));
   printInteger((ESTOP_PIN>>ESTOP_BIT)&1);
   printInteger(probe_get_state()?1:0);
   print_uint8_base2(limit_state);
-  printPgmString(PSTR("/\r\n"));*/
+  printPgmString(PSTR("/\r\n"));
 }
