@@ -673,6 +673,8 @@ void stepper_init()
   DIRECTION_DDR |= DIRECTION_MASK;
   DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | settings.dir_invert_mask;
   
+  // The following used to be Timer 1 but was moved to Timer 4 in order
+  // for the ADC to use Timer 1
   // Configure Timer 4: Stepper Driver Interrupt
   TCCR4B &= ~(1<<WGM43); // waveform generation = 0100 = CTC
   TCCR4B |=  (1<<WGM42);

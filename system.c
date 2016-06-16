@@ -31,7 +31,8 @@
 
 
 uint32_t masterclock=0;
-
+uint32_t voltage_result[5];
+uint8_t voltage_result_index = 0;
 
 void system_init()
 {
@@ -50,27 +51,22 @@ void system_init()
   OCR2A = 249;          //(249+1) * 64 prescale / 16Mhz = 1 ms
   OCR2B = 0;
 
+  /* KEYME SPECIFIC START */
   // Setup Timer1 for AutoTriggering
-  PRR0 &= ~(1<<PRTIM1);
+  PRR0 &= ~(1<<PRTIM1); // Gives power to Timer 1
   TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC
   TCCR1B |=  (1<<WGM12);
-  TCCR1B |= (1<<CS11)|(1<<CS10);
+  TCCR1B |= (1<<CS11)|(1<<CS10); // Prescaler 64x
   TCCR1A &= ~((1<<WGM11) | (1<<WGM10));
   TCCR1A &= ~((1<<COM1A1) | (1<<COM1A0) | (1<<COM1B1) | (1<<COM1B0)); // Disconnect OC4 output
+
+  // Timer Match value of 0xFFFF. This can be reduced to retrieve voltage values sooner
   OCR1A = 0XFF;
   OCR1B = 0XFF;
-  // TCCR4B = (TCCR4B & ~((1<<CS42) | (1<<CS41))) | (1<<CS40); // Set in st_go_idle().
-  //TIMSK4 &= ~(1<<OCIE4A);  // Set in st_go_idle().
-  //
 
-  // Setup AutoTriggering for Voltage Monitoring
+  // Initialize ADC for Voltage Monitoring
   init_ADC();
-
-  // Configure Timer 3: Voltage Monitoring Interrupt
-  /*TCCR3A = 0;
-  TCCR3B = 0;
-  TCCR3B |= (1 << CS12);    // 256 prescaler 
-  TIMSK3 |= (1 << TOIE1);   // enable timer overflow interrupt*/
+  /* KEYME SPECIFIC END */
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -79,9 +75,7 @@ ISR(TIMER2_COMPA_vect)
   masterclock++;
 }
 
-
-/* KEY ME SPECIFIC START */
-
+/* KEYME SPECIFIC START */
 void init_ADC(){
   ADCSRB = 0;
   ADCSRA = 0;
@@ -93,58 +87,26 @@ void init_ADC(){
   ADCSRB = (1<<ADTS2)|(1<<ADTS0); // Start conversion on Timer1 CTC
 }
 
-/* The Voltage Monitoring Interrupt: Timer3 COMPA interrupt handles enabling the ADC to
-   calculate the the voltage of each motor (C,X,Y,Z) and the Force sensor when the timer
-   3 counter overflows. */
-
-//TODO: double check if ADC interrupt is enables while in TIMER3 interrupt handler.
-//TODO: make sure clock time is properly time between TIMER3 and ADC interrupts. If not
-//      interrupts could overlap.
-uint32_t voltage_result[5];
-uint8_t voltage_result_index = 0;
-/*ISR(TIMER3_OVF_vect)
-{
-  uint8_t adcNum;
-  //voltage_result_index = 0; // index for votlage value array
-
-  ADMUX = (1<<REFS0); // Set ADC reference
-  ADCSRA =(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0); // Enable prescaler of 128x
-
-  // This for loop caculates ADC values for motors C,X,Y,Z
-  for (adcNum=0; adcNum<5; adcNum++){
-    ADCSRA |= (1<<ADEN); // Enable ADC
-    //ADCSRA |= (1<<ADIE); // Enable ADC interrupt
-    ADCSRA |= (1<<ADSC); // Begin ADC Conversion
-    while(ADCSRA & (1<<ADSC)); // Wait for result
-    //ADCSRA &= (0<<ADEN);
-    voltage_result[adcNum] = ADC;
-  }
-
-  // This last ADC enable is for the force sensor
-  ADMUX = (1<<REFS0) + FVOLT_ADC;
-  ADCSRB = (1<<MUX5_BIT);
-  ADCSRA |= (1<<ADEN); // Enable ADC
-  //ADCSRA |= (1<<ADIE); // Enable ADC interrupt
-  ADCSRA |= (1<<ADSC); // Begin ADC conversion
-  while(ADCSRA & (1<<ADSC)); // Wait for result
-  voltage_result[5] = ADC;
-  ADCSRA = 0;
-  //ADCSRA=0;
-}*/
-
 /* The ADC completion Interrupt: This interrupt occurs once ADC completes its conversion
-   of target. Voltage value is stored in an array. Values in Array are printed on request
+   of target. The ADC is set to AutoTrigger, which means the conversion will begin at certain
+   intervals. In this case, the conversion begins when the TIMER1_COMPA_vector signals an
+   interrupt. Voltage values are stored in an array. Values in Array are printed on request
    in report_voltage(). */
 ISR(ADC_vect){
-  TIFR1 |= (1<<OCF1A)|(1<<OCF1B); // clear these compare bits to allow for interrupts
-  // Final conversion is a 10 bit value stored in ADCL and ADCH. ADCL must be accessed first.
+  // These bits are flipped to 0 while inside TIMER1_COMPA_vector interrupt and to 1 once we
+  // exit the interrupt. Since there is no ISR for this, we must manually flip them to signal
+  // that we have exited this interrupt.
+  TIFR1 |= (1<<OCF1A)|(1<<OCF1B);
+
+  // Final conversion is a 10 bit value stored in ADC
   voltage_result[voltage_result_index] = ADC;
   voltage_result_index++;
+
   if (voltage_result_index ==5)
     voltage_result_index = 0;
 
   if (voltage_result_index < 4){
-    ADCSRB &= ~(1<<MUX5_BIT);
+    ADCSRB &= ~(1<<MUX5_BIT); // Clear MUX5_BIT which is set when force sensor is target
     ADMUX = (1<<REFS0) + voltage_result_index; // set next motor target for ADC
   }
   else{
@@ -155,7 +117,6 @@ ISR(ADC_vect){
 }
 
 /* KEY ME SPECIFIC END*/
-
 
 
 // Executes user startup script, if stored.
