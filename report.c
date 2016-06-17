@@ -48,7 +48,7 @@
 // NOTE: In silent mode, all error codes are greater than zero.
 // TODO: Install silent mode to return only numeric values, primarily for GUIs.
 void report_status_message(uint8_t status_code)
-{ 
+{
   if (status_code == 0) { // STATUS_OK
     printPgmString(PSTR("ok\r\n"));
   } else if (status_code & STATUS_QUIET_OK) {
