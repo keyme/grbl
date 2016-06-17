@@ -49,8 +49,8 @@
 // TODO: Install silent mode to return only numeric values, primarily for GUIs.
 void report_status_message(uint8_t status_code)
 { 
-  printInteger(status_code);
   if (status_code == 0) { // STATUS_OK
+    printPgmString(PSTR("ok\r\n"));
   } else if (status_code & STATUS_QUIET_OK) {
     // protocol can return a 'QUIET_OK' status meaning don't print OK, print something else instead
     if (0!= (status_code&=~STATUS_QUIET_OK)) {
@@ -165,7 +165,6 @@ void report_grbl_help() {
                       "! (feed hold)\r\n"
                       "? (current status)\r\n"
                       "^ (limit pins)\r\n"
-		      "| (voltage report)\r\n"
                       "ctrl-x (reset Grbl)\r\n"));
 }
 
@@ -393,12 +392,13 @@ void report_voltage()
   printPgmString(PSTR("\r\n"));
 }
 
-
  // Prints real-time data. This function grabs a real-time snapshot of the stepper subprogram
  // and the actual location of the CNC machine. Users may change the following function to their
  // specific needs, but the desired real-time data report must be as short as possible. This is
  // requires as it minimizes the computational overhead and allows grbl to keep running smoothly,
  // especially during g-code programs with fast, short line segments and high frequency reports (5-20Hz).
+
+
 
 uint8_t report_realtime_status()
 {
