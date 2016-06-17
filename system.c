@@ -87,6 +87,13 @@ void init_ADC(){
   ADCSRB = (1<<ADTS2)|(1<<ADTS0); // Start conversion on Timer1 CTC
 }
 
+/* This performs a low pass filter on ADC values to reduce impact of noise on a final
+   value */
+uint32_t lpf(float beta, uint32_t adc, uint32_t final_prev){
+  float result = (float)final_prev - (beta * ((float)final_prev - (float)adc));
+  return (uint32_t)result;
+}
+
 /* The ADC completion Interrupt: This interrupt occurs once ADC completes its conversion
    of target. The ADC is set to AutoTrigger, which means the conversion will begin at certain
    intervals. In this case, the conversion begins when the TIMER1_COMPA_vector signals an
@@ -97,14 +104,15 @@ ISR(ADC_vect){
   // exit the interrupt. Since there is no ISR for this, we must manually flip them to signal
   // that we have exited this interrupt.
   TIFR1 |= (1<<OCF1A)|(1<<OCF1B);
-
+  
+  float beta_LPF = 0.25; // coefficient for low pass filter
   // Final conversion is a 10 bit value stored in ADC
-  voltage_result[voltage_result_index] = ADC;
+  voltage_result[voltage_result_index] = lpf(beta_LPF, (uint32_t)ADC,
+                                             voltage_result[voltage_result_index]);
   voltage_result_index++;
 
   if (voltage_result_index ==5)
     voltage_result_index = 0;
-
   if (voltage_result_index < 4){
     ADCSRB &= ~(1<<MUX5_BIT); // Clear MUX5_BIT which is set when force sensor is target
     ADMUX = (1<<REFS0) + voltage_result_index; // set next motor target for ADC

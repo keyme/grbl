@@ -162,4 +162,5 @@ enum {
 #define TIME_TOGGLE(tid)  (((tid)==ACTIVE_TIMER)?(TIMING_PIN|=TIMING_MASK):0)
 
 void init_ADC();
+uint32_t lpf(float beta, uint32_t adc, uint32_t final_prev);
 #endif
