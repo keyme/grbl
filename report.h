@@ -64,7 +64,7 @@
 #define MESSAGE_DISABLED 5
 
 // Variable for holding voltage value after ADC
-extern uint32_t voltage_result[5];
+extern uint32_t voltage_result[VOLT_NUM];
 extern uint8_t voltage_result_index;
 
 // Prints system status messages.
