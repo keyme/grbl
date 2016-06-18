@@ -31,7 +31,7 @@
 
 
 uint32_t masterclock=0;
-uint32_t voltage_result[5];
+uint32_t voltage_result[VOLT_NUM];
 uint8_t voltage_result_index = 0;
 
 void system_init()
@@ -105,15 +105,14 @@ ISR(ADC_vect){
   // that we have exited this interrupt.
   TIFR1 |= (1<<OCF1A)|(1<<OCF1B);
   
-  float beta_LPF = 0.25; // coefficient for low pass filter
   // Final conversion is a 10 bit value stored in ADC
-  voltage_result[voltage_result_index] = lpf(beta_LPF, (uint32_t)ADC,
+  voltage_result[voltage_result_index] = lpf(BETA_LPF, (uint32_t)ADC,
                                              voltage_result[voltage_result_index]);
   voltage_result_index++;
 
-  if (voltage_result_index ==5)
+  if (voltage_result_index == VOLT_NUM)
     voltage_result_index = 0;
-  if (voltage_result_index < 4){
+  if (voltage_result_index < VOLT_NUM-1){
     ADCSRB &= ~(1<<MUX5_BIT); // Clear MUX5_BIT which is set when force sensor is target
     ADMUX = (1<<REFS0) + voltage_result_index; // set next motor target for ADC
   }
