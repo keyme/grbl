@@ -680,8 +680,6 @@ void stepper_init()
   TCCR4B |=  (1<<WGM42);
   TCCR4A &= ~((1<<WGM41) | (1<<WGM40));
   TCCR4A &= ~((1<<COM4A1) | (1<<COM4A0) | (1<<COM4B1) | (1<<COM4B0)); // Disconnect OC4 output
-  // TCCR4B = (TCCR4B & ~((1<<CS42) | (1<<CS41))) | (1<<CS40); // Set in st_go_idle().
-  // TIMSK4 &= ~(1<<OCIE4A);  // Set in st_go_idle().
 
   // Configure Timer 0: Stepper Port Reset Interrupt
   TIMSK0 &= ~((1<<OCIE0B) | (1<<OCIE0A) | (1<<TOIE0)); // Disconnect OC0 outputs and OVF interrupt.
