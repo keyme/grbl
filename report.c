@@ -384,7 +384,7 @@ void report_voltage()
   uint8_t i;
   printPgmString(PSTR("|"));
   for (i = 0; i<VOLT_NUM; i++){
-    printInteger(voltage_result[i]);
+    printInteger((uint32_t)voltage_result[i]);
     if (i<VOLT_NUM-1)
       printPgmString(PSTR(","));
   }

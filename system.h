@@ -163,7 +163,7 @@ enum {
 
 // Voltage Monitoring
 #define VOLT_NUM 5 // number of sensors we are probing
-#define BETA_LPF 0.25; // coefficient for low pass filter
+#define BETA_LPF 0.25 // coefficient for low pass filter
 void init_ADC();
-uint32_t lpf(float beta, uint32_t adc, uint32_t final_prev);
+float lpf(float beta, uint16_t adc, float final_prev);
 #endif
