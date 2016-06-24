@@ -31,7 +31,7 @@
 
 
 uint32_t masterclock=0;
-uint32_t voltage_result[VOLT_NUM];
+float voltage_result[VOLT_NUM];
 uint8_t voltage_result_index = 0;
 
 void system_init()
@@ -89,9 +89,9 @@ void init_ADC(){
 
 /* This performs a low pass filter on ADC values to reduce impact of noise on a final
    value */
-uint32_t lpf(float beta, uint32_t adc, uint32_t final_prev){
-  float result = (float)final_prev - (beta * ((float)final_prev - (float)adc));
-  return (uint32_t)result;
+float lpf(float beta, uint16_t adc, float final_prev){
+  float result = (float)final_prev - (beta * (final_prev - (float)adc));
+  return result;
 }
 
 /* The ADC completion Interrupt: This interrupt occurs once ADC completes its conversion
@@ -106,7 +106,7 @@ ISR(ADC_vect){
   TIFR1 |= (1<<OCF1A)|(1<<OCF1B);
   
   // Final conversion is a 10 bit value stored in ADC
-  voltage_result[voltage_result_index] = lpf(BETA_LPF, (uint32_t)ADC,
+  voltage_result[voltage_result_index] = lpf(BETA_LPF, ADC,
                                              voltage_result[voltage_result_index]);
   voltage_result_index++;
 
