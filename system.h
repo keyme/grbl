@@ -162,8 +162,8 @@ enum {
 #define TIME_TOGGLE(tid)  (((tid)==ACTIVE_TIMER)?(TIMING_PIN|=TIMING_MASK):0)
 
 // Voltage Monitoring
-#define VOLT_NUM 5 // number of sensors we are probing
+#define VOLTAGE_SENSOR_COUNT 5 // number of sensors we are probing
 #define BETA_LPF 0.25 // coefficient for low pass filter
 void init_ADC();
-float lpf(float beta, uint16_t adc, float final_prev);
+float low_pass_filter(float beta, uint16_t adc, float final_prev);
 #endif
