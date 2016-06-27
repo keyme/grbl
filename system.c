@@ -90,7 +90,7 @@ void init_ADC(){
 /* This performs a low pass filter on ADC values to reduce impact of noise on a final
    value */
 float low_pass_filter(float beta, uint16_t adc, float final_prev){
-  float result = (float)final_prev - (beta * (final_prev - (float)adc));
+  float result = final_prev - (beta * (final_prev - (float)adc));
   return result;
 }
 
