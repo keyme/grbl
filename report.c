@@ -378,68 +378,16 @@ void report_counters()
   printPgmString(PSTR("}\r\n"));
 }
 
-//Prints voltage data: motor volts.
+// Prints voltage data for Motors (C,X,Y,Z) and Force sensor.
 void report_voltage()
 {
-  // Set the ADC Reference
-  ADMUX = (1<<REFS0);
-
-  // Begin character
+  uint8_t i;
   printPgmString(PSTR("|"));
-
-  // This block should work to read the 4 analogs connected
-  // to the 24V feed lines.  It does work once on each new
-  // instance of a session, but then it goes to nonsense.
-  // Better to just skip it, or we may mess up the
-  // reading of the feedback sensor analog.
-  /*
-  uint8_t adcNum;
-  for (adcNum=0; adcNum<4; adcNum++)
-  {
-    // Enable ADC, start conversion, prescaler of 128x
-    ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
-
-    // Set MUX to the channel
-    ADMUX = ((1<<REFS0) + adcNum);
-
-    // Enable capture of ADC
-    ADCSRA |= (1<<ADSC);
-
-    // Wait for the result
-    while(ADCSRA & (1<<ADSC));
-
-    // Print the result
-    printInteger(ADC);
-    printPgmString(PSTR(","));
-
-    // Disable ADC
-    ADCSRA = (0<<ADEN);
+  for (i = 0; i<VOLTAGE_SENSOR_COUNT; i++){
+    printInteger((uint32_t)voltage_result[i]);
+    if (i<VOLTAGE_SENSOR_COUNT-1)
+      printPgmString(PSTR(","));
   }
-  */
-  // Remove thise line when the analogs above work properly
-  printPgmString(PSTR("0,0,0,0,"));
-
-  /////////////
-
-  // Enable ADC, start conversion, prescaler of 128x
-  ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
-
-  // Set read bit to be the special feedback bit (ADC14)
-  // This is bit select 6, plus
-  ADMUX = ((1<<REFS0) + (FVOLT_ADC));
-  ADCSRB = (1<<MUX5_BIT);
-  // Enable capture of ADC
-  ADCSRA |= (1<<ADSC);
-  // Wait for the result
-  while(ADCSRA & (1<<ADSC));
-  // Print the result
-  printInteger(ADC);
-
-  // Disable ADC
-  ADCSRA = (0<<ADEN);
-
-  //////////
-
   printPgmString(PSTR("|"));
   printPgmString(PSTR("\r\n"));
 }

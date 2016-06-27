@@ -31,7 +31,8 @@
 
 
 uint32_t masterclock=0;
-
+float voltage_result[VOLTAGE_SENSOR_COUNT];
+uint8_t voltage_result_index = 0;
 
 void system_init()
 {
@@ -49,6 +50,23 @@ void system_init()
 
   OCR2A = 249;          //(249+1) * 64 prescale / 16Mhz = 1 ms
   OCR2B = 0;
+
+  /* KEYME SPECIFIC START */
+  // Setup Timer1 for AutoTriggering
+  PRR0 &= ~(1<<PRTIM1); // Gives power to Timer 1
+  TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC
+  TCCR1B |=  (1<<WGM12);
+  TCCR1B |= (1<<CS11)|(1<<CS10); // Prescaler 64x
+  TCCR1A &= ~((1<<WGM11) | (1<<WGM10));
+  TCCR1A &= ~((1<<COM1A1) | (1<<COM1A0) | (1<<COM1B1) | (1<<COM1B0)); // Disconnect OC4 output
+
+  // Timer Match value of 0xFFFF. This can be reduced to retrieve voltage values sooner
+  OCR1A = 0XFF;
+  OCR1B = 0XFF;
+
+  // Initialize ADC for Voltage Monitoring
+  init_ADC();
+  /* KEYME SPECIFIC END */
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -56,6 +74,56 @@ ISR(TIMER2_COMPA_vect)
   TIME_TOGGLE(time_CLOCK);
   masterclock++;
 }
+
+/* KEYME SPECIFIC START */
+void init_ADC(){
+  ADCSRB = 0;
+  ADCSRA = 0;
+  ADMUX = (1<<REFS0); // Set ADC reference
+  ADCSRA = (1<<ADPS2)|(1<<ADPS0); // Enable prescaler of 32x
+  ADCSRA |= (1<<ADIE); // Enable ADC interrupt
+  ADCSRA |= (1<<ADEN); // Enable ADC
+  ADCSRA |= (1<<ADATE); // Enable AutoTriggering
+  ADCSRB = (1<<ADTS2)|(1<<ADTS0); // Start conversion on Timer1 CTC
+}
+
+/* This performs a low pass filter on ADC values to reduce impact of noise on a final
+   value */
+float low_pass_filter(float beta, uint16_t adc, float final_prev){
+  float result = final_prev - (beta * (final_prev - (float)adc));
+  return result;
+}
+
+/* The ADC completion Interrupt: This interrupt occurs once ADC completes its conversion
+   of target. The ADC is set to AutoTrigger, which means the conversion will begin at certain
+   intervals. In this case, the conversion begins when the TIMER1_COMPA_vector signals an
+   interrupt. Voltage values are stored in an array. Values in Array are printed on request
+   in report_voltage(). */
+ISR(ADC_vect){
+  // These bits are flipped to 0 while inside TIMER1_COMPA_vector interrupt and to 1 once we
+  // exit the interrupt. Since there is no ISR for this, we must manually flip them to signal
+  // that we have exited this interrupt.
+  TIFR1 |= (1<<OCF1A)|(1<<OCF1B);
+  
+  // Final conversion is a 10 bit value stored in ADC
+  voltage_result[voltage_result_index] = low_pass_filter(BETA_LPF, ADC,
+                                             voltage_result[voltage_result_index]);
+  voltage_result_index++;
+
+  if (voltage_result_index == VOLTAGE_SENSOR_COUNT)
+    voltage_result_index = 0;
+  if (voltage_result_index < VOLTAGE_SENSOR_COUNT-1){
+    ADCSRB &= ~(1<<MUX5_BIT); // Clear MUX5_BIT which is set when force sensor is target
+    ADMUX = (1<<REFS0) + voltage_result_index; // set next motor target for ADC
+  }
+  else{
+    // set force sensor as next target
+    ADMUX = (1<<REFS0) + FVOLT_ADC;
+    ADCSRB |= (1<<MUX5_BIT);
+  }
+}
+/* KEY ME SPECIFIC END*/
+
 
 // Executes user startup script, if stored.
 void system_execute_startup(char *line)
