@@ -340,6 +340,8 @@ ISR(TIMER4_COMPA_vect)
   sei(); // Re-enable interrupts to allow Stepper Port Reset Interrupt to fire on-time.
          // NOTE: The remaining code in this ISR will finish before returning to main program.
 
+  disable_ADC_ISR(); // Disable ADC interrupt to avoid being fired before Stepper Port Reset Interrupt
+
   // If there is no step segment, attempt to pop one from the stepper buffer
   if (st.exec_segment == NULL) {
     // Anything in the buffer? If so, load and initialize next step segment.
@@ -486,6 +488,7 @@ ISR(TIMER0_OVF_vect)
   // Reset stepping pins (leave the direction pins)
   STEP_PORT = (STEP_PORT & ~STEP_MASK) | (settings.step_invert_mask & STEP_MASK);
   TCCR0B = 0; // Disable Timer0 to prevent re-entering this interrupt when it's not needed.
+  enable_ADC_ISR(); // Must enable ADC interrupt after the motors have recieved pulses
 }
 #ifdef STEP_PULSE_DELAY
   // This interrupt is used only when STEP_PULSE_DELAY is enabled. Here, the step pulse is

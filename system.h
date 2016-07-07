@@ -165,5 +165,7 @@ enum {
 #define VOLTAGE_SENSOR_COUNT 5 // number of sensors we are probing
 #define BETA_LPF 0.25 // coefficient for low pass filter
 void init_ADC();
+void disable_ADC_ISR();
+void enable_ADC_ISR();
 float low_pass_filter(float beta, uint16_t adc, float final_prev);
 #endif

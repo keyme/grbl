@@ -87,6 +87,14 @@ void init_ADC(){
   ADCSRB = (1<<ADTS2)|(1<<ADTS0); // Start conversion on Timer1 CTC
 }
 
+void disable_ADC_ISR(){
+  ADCSRA &= ~(1<<ADIE);
+}
+
+void enable_ADC_ISR(){
+  ADCSRA |= (1<<ADIE);
+}
+
 /* This performs a low pass filter on ADC values to reduce impact of noise on a final
    value */
 float low_pass_filter(float beta, uint16_t adc, float final_prev){
