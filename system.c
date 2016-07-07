@@ -111,6 +111,7 @@ ISR(ADC_vect){
   // These bits are flipped to 0 while inside TIMER1_COMPA_vector interrupt and to 1 once we
   // exit the interrupt. Since there is no ISR for this, we must manually flip them to signal
   // that we have exited this interrupt.
+  sei();
   TIFR1 |= (1<<OCF1A)|(1<<OCF1B);
   
   // Final conversion is a 10 bit value stored in ADC
