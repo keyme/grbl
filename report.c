@@ -412,7 +412,6 @@ uint8_t report_realtime_status()
   memcpy(current_position,sys.position,sizeof(sys.position));
 
   float print_position[N_AXIS];
-  report_voltage();
   // Report current machine state
   switch (sys.state) {
     case STATE_IDLE: printPgmString(PSTR("<Idle")); break;
