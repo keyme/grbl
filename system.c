@@ -31,7 +31,8 @@
 
 
 uint32_t masterclock=0;
-float voltage_result[VOLTAGE_SENSOR_COUNT];
+//float voltage_result[VOLTAGE_SENSOR_COUNT];
+uint16_t voltage_result[VOLTAGE_SENSOR_COUNT];
 uint8_t voltage_result_index = 0;
 
 void system_init()
@@ -111,12 +112,14 @@ ISR(ADC_vect){
   // These bits are flipped to 0 while inside TIMER1_COMPA_vector interrupt and to 1 once we
   // exit the interrupt. Since there is no ISR for this, we must manually flip them to signal
   // that we have exited this interrupt.
-  sei();
+  //sei();
   TIFR1 |= (1<<OCF1A)|(1<<OCF1B);
   
   // Final conversion is a 10 bit value stored in ADC
-  voltage_result[voltage_result_index] = low_pass_filter(BETA_LPF, ADC,
-                                             voltage_result[voltage_result_index]);
+  //voltage_result[voltage_result_index] = low_pass_filter(BETA_LPF, ADC,
+  //                                           voltage_result[voltage_result_index]);
+  
+  voltage_result[voltage_result_index] = ADC;
   voltage_result_index++;
 
   if (voltage_result_index == VOLTAGE_SENSOR_COUNT)
