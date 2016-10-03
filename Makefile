@@ -73,7 +73,7 @@ fuse:
 # Xcode uses the Makefile targets "", "clean" and "install"
 install: flash fuse
 
-# if you use a bootloader, change the command below appropriately:
+# Using a USB bootloader for ARM microcontrollers
 load: all
 	bootloadHID grbl.hex
 
