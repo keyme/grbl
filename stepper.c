@@ -263,7 +263,46 @@ void st_check_disable() {
   }
 }
 
+//Called from ISR(TIMER4_COMPA_vect) - needs to be very efficient 
+void st_limit_check(){
+  // While homing or if hard limits enabled
 
+  // Limit checking performed here
+
+  // LIMIT_PIN - Input buffer of port to which home sensors are connected
+  // limits.expected - approach set in limits.c. limits.expected stores what the pins in LIMIT_PIN
+  // should be when the axes are moving and have not reached the home sensor
+  // limits.active - active bit is set in limits.active if axis is homing
+  // If home sensor is reached in LIMIT_PIN and the pin is different than
+  // that of limits.expected and the axis is homing as set in limits.active,
+  // then set the bit for that pin in must_stop, to indicate that the corresponding
+  // axis should stop
+
+  //Disable magazine gap checking if carousel has finished homing, but other axes are still homing
+  if( !(limits.ishoming & (1 << C_AXIS)) && limits.ishoming){
+    limits.mag_gap_check = 0 ;
+  }
+  
+  uint8_t must_stop = (( (LIMIT_PIN) ^ limits.expected) & limits.active);
+  if (must_stop) {
+    st.step_outbits &= ~(must_stop >> LIMIT_BIT_SHIFT);
+    limits.ishoming &= ~(must_stop >> LIMIT_BIT_SHIFT); // If an axis is done homing, clear the corresponding bit in limits.ishoming
+     
+   if (!limits.ishoming) {
+      request_report(REQUEST_STATUS_REPORT|REQUEST_LIMIT_REPORT,LINENUMBER_EMPTY_BLOCK);
+    }
+    //if limits made but not homing , servoing, or alarmed already: critical alarm.
+    if ( !(sys.state & (STATE_ALARM|STATE_HOMING)) && !(sys.state & (STATE_ALARM|STATE_FORCESERVO)) &&
+         bit_isfalse(SYS_EXEC,EXEC_ALARM)) {
+      mc_reset(); // Initiate system kill.
+      // Indicate hard limit critical event, print limits
+      sys.alarm |= ALARM_HARD_LIMIT;
+      request_report(REQUEST_LIMIT_REPORT, (EXEC_ALARM | EXEC_CRIT_EVENT));
+    }
+  }
+
+ 
+}
 
 /* "The Stepper Driver Interrupt" - This timer interrupt is the workhorse of Grbl. Grbl employs
    the venerable Bresenham line algorithm to manage and exactly synchronize multi-axis moves.
@@ -435,24 +474,7 @@ ISR(TIMER4_COMPA_vect)
     else { sys.position[C_AXIS]++; }
   }
 
-  // While homing or if hard limits enabled
-
-  uint8_t must_stop = ((LIMIT_PIN^limits.expected)&limits.active);
-  if (must_stop) {
-    st.step_outbits &= ~(must_stop>>LIMIT_BIT_SHIFT);
-    if (!st.step_outbits) {
-      limits.ishoming = 0; //if all axes at correct limit state, homing phase is over
-      request_report(REQUEST_STATUS_REPORT|REQUEST_LIMIT_REPORT,LINENUMBER_EMPTY_BLOCK);
-    }
-    //if limits made but not homing , servoing, or alarmed already: critical alarm.
-    if ( !(sys.state & (STATE_ALARM|STATE_HOMING)) && !(sys.state & (STATE_ALARM|STATE_FORCESERVO)) &&
-         bit_isfalse(SYS_EXEC,EXEC_ALARM)) {
-      mc_reset(); // Initiate system kill.
-      // Indicate hard limit critical event, print limits
-      sys.alarm |= ALARM_HARD_LIMIT;
-      request_report(REQUEST_LIMIT_REPORT,(EXEC_ALARM | EXEC_CRIT_EVENT));
-    }
-  }
+  st_limit_check(); //Check for limits
 
   // This checks if desired force value is met while bumping key.
   // Once value is reached, gripper motor will stop.

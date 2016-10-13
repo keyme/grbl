@@ -77,6 +77,7 @@ void limits_enable(uint8_t axes, uint8_t expected) {
   limits.expected = bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS)?~expected:expected;
   limits.active = axes<<LIMIT_BIT_SHIFT;
   limits.mag_gap_check = MAG_GAP_CHECK_ENABLE;
+  memcpy(sys.probe_position, sys.position, sizeof(float) * N_AXIS);
 }
 
 
@@ -118,7 +119,7 @@ void limits_go_home(uint8_t cycle_mask)
   // Initialize homing in search mode to quickly engage the specified cycle_mask limit switches.
   uint8_t approach = ~0;  //approach has all bits set (negative dir) or none (positive)
   uint8_t idx;
-  uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE);
+  uint8_t n_cycle = (2 * N_HOMING_LOCATE_CYCLE);
   float target[N_AXIS];
 
   uint8_t flipped = settings.homing_dir_mask>>X_DIRECTION_BIT;  //assumes keyme configuration.
@@ -170,7 +171,7 @@ void limits_go_home(uint8_t cycle_mask)
 
     // axislock bit is high if axis is homing, so we only enable checking on moving axes.
     limits_enable(axislock,~approach);  //expect 0 on approach (stop when 1). vice versa for pulloff
-    limits.ishoming = 1;
+    limits.ishoming = axislock << LIMIT_BIT_SHIFT;
 
     st_prep_buffer(); // Prep and fill segment buffer from newly planned block.
     st_wake_up(); // Initiate motion

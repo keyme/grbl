@@ -79,12 +79,13 @@
 // on separate pin, but homed in one cycle. Also, it should be noted that the function of hard limits
 // will not be affected by pin sharing.
 // NOTE: CYCLE is set for the keyme machine.  Gripper open first. Then Y, then X & Carousel
-#define HOMING_CYCLE_0 (1<<X_AXIS)                // REQUIRED: First move X
-#define HOMING_CYCLE_1 (1<<Y_AXIS)                // Clear Y Axis
-#define HOMING_CYCLE_2 ((1<<Z_AXIS)|(1<<C_AXIS))  // Z and carousel ok at same time.
+#define HOMING_CYCLE_0 (1 << X_AXIS)   // REQUIRED: First move X
+#define HOMING_CYCLE_1 (1 << Y_AXIS)   
+#define HOMING_CYCLE_2 (1 << Z_AXIS)   // Gripper
+#define HOMING_CYCLE_3 (1 << C_AXIS)
 
 
-#define HOMING_CYCLE_ALL  (HOMING_CYCLE_0|HOMING_CYCLE_1|HOMING_CYCLE_2)
+#define HOMING_CYCLE_ALL  (HOMING_CYCLE_0 | HOMING_CYCLE_1 | HOMING_CYCLE_2 | HOMING_CYCLE_3)
 // Number of homing cycles performed after when the machine initially jogs to limit switches.
 // This help in preventing overshoot and should improve repeatability. This value should be one or
 // greater.

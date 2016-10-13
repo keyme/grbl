@@ -224,16 +224,15 @@ void mc_homing_cycle(uint8_t axis_mask)
   // -------------------------------------------------------------------------------------
   // Perform homing routine. NOTE: Special motion case. Only system reset works.
   
-  // Search to engage all axes limit switches at faster homing seek rate.
-  limits_go_home(HOMING_CYCLE_0&axis_mask);  // Homing cycle 0
-  #ifdef HOMING_CYCLE_1
-    limits_go_home(HOMING_CYCLE_1&axis_mask);  // Homing cycle 1
-  #endif
-  #ifdef HOMING_CYCLE_2
-    limits_go_home(HOMING_CYCLE_2&axis_mask);  // Homing cycle 2
-  #endif
-
-
+  // If all axes are selected, home the axes sequentially
+  if (axis_mask == HOMING_CYCLE_ALL) {
+    limits_go_home((HOMING_CYCLE_0) & axis_mask); 
+    limits_go_home((HOMING_CYCLE_1) & axis_mask);  
+    limits_go_home((HOMING_CYCLE_2) & axis_mask); 
+    limits_go_home((HOMING_CYCLE_3) & axis_mask);   
+  } else {
+    limits_go_home(axis_mask);
+  }
     
   protocol_execute_runtime(); // Check for reset and set system abort.
   if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
