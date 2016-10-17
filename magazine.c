@@ -30,6 +30,7 @@ void magazine_gap_monitor()
 
   if(limits.mag_gap_check == 0)
     return;
+
   // Activate alarm if the gap between the current position and the previous
   // probe position becomes too large. Only do this when the system has already homed
   const int32_t cur_pos = sys.position[C_AXIS];

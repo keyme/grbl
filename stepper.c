@@ -286,11 +286,15 @@ void st_limit_check(){
   uint8_t must_stop = (( (LIMIT_PIN) ^ limits.expected) & limits.active);
   if (must_stop) {
     st.step_outbits &= ~(must_stop >> LIMIT_BIT_SHIFT);
-    limits.ishoming &= ~(must_stop >> LIMIT_BIT_SHIFT); // If an axis is done homing, clear the corresponding bit in limits.ishoming
-     
-   if (!limits.ishoming) {
+    limits.ishoming &= ~(must_stop >> LIMIT_BIT_SHIFT); // If an axis is done homing, clear the corresponding bit in limits.ishoming     
+ 
+  if (!limits.ishoming) {
       request_report(REQUEST_STATUS_REPORT|REQUEST_LIMIT_REPORT,LINENUMBER_EMPTY_BLOCK);
-    }
+  } else { 
+    bit_true(sys.state, STATE_HOME_ADJUST);
+
+  }
+
     //if limits made but not homing , servoing, or alarmed already: critical alarm.
     if ( !(sys.state & (STATE_ALARM|STATE_HOMING)) && !(sys.state & (STATE_ALARM|STATE_FORCESERVO)) &&
          bit_isfalse(SYS_EXEC,EXEC_ALARM)) {
@@ -430,9 +434,6 @@ ISR(TIMER4_COMPA_vect)
   }
   // Check probing state.
   probe_state_monitor();
-
-  // Check if mag is missing on the carousel
-  magazine_gap_monitor();
 
   // Reset step out bits.
   st.step_outbits = 0;

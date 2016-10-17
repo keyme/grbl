@@ -72,6 +72,7 @@
 #define STATE_CYCLE      bit(4) // Cycle is running
 #define STATE_HOLD       bit(5) // Executing feed hold
 #define STATE_FORCESERVO bit(6) // Force servo process
+#define STATE_HOME_ADJUST bit(7) // Update the minimum homing rate when some axes complete homing cycle
 
 // Define Grbl alarm codes. Listed most to least serious
 #define ALARM_SOFT_LIMIT  bit(0) // soft limits exceeded
