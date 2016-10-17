@@ -124,7 +124,7 @@ uint8_t serial_read()
     uint8_t data = rx_buffer[tail];
 
     tail++;
-    if (tail == (uint8_t)RX_BUFFER_SIZE) { tail = 0; }
+    if (tail == RX_BUFFER_SIZE) { tail = 0; }
     rx_buffer_tail = tail;
 
     return data;
@@ -149,7 +149,7 @@ ISR(SERIAL_RX)
     case CMD_RESET:     mc_reset(); break; // Call motion control reset routine.
     default: // Write character to buffer
       next_head = rx_buffer_head + 1;
-      if (next_head == (uint8_t)RX_BUFFER_SIZE) { next_head = 0; }
+      if (next_head == RX_BUFFER_SIZE) { next_head = 0; }
 
       // Write data to buffer unless it is full.
       if (next_head != rx_buffer_tail) {
