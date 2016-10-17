@@ -272,18 +272,21 @@ uint8_t system_execute_line(char *line)
           break;
         case 'H' : // Perform homing cycle [IDLE/ALARM], only if idle or lost
           if (bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE)) {
+            uint8_t home_mask = 0;
             char axis = line[++char_counter];
             if (axis == '\0' ) {
-              axis = HOMING_CYCLE_ALL; //do all axes if none specified
+              home_mask = HOMING_CYCLE_ALL; //do all axes if none specified
             }
             else {
-              if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
-              axis = get_axis_idx(axis);
-              if (axis == N_AXIS) { return(STATUS_INVALID_STATEMENT); }
-              axis = (1<<axis);  //convert idx to mask
+              while (axis != '\0') {
+                axis = get_axis_idx(axis);
+                if (axis == N_AXIS) { return(STATUS_INVALID_STATEMENT); }
+                home_mask |= (1 << axis); //add axis to homing mask 
+                axis = line[++char_counter]; 
+              }
             }
             report_status_message(STATUS_OK); //report that we are homing
-            mc_homing_cycle(axis);
+            mc_homing_cycle(home_mask);
             if (!sys.abort) { system_execute_startup(line); } // Execute startup scripts after successful homing.
             return STATUS_QUIET_OK; //already said ok
           } else { return(STATUS_SETTING_DISABLED); }
