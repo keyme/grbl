@@ -401,7 +401,7 @@ void report_voltage()
 void calculate_motor_voltage(){
   uint8_t i;
 
-  for (i = 0; i < (N_AXIS - 1); i++) {
+  for (i = 0; i < N_AXIS; i++) {
     // Assumes the motors are on ADC channels 0-3 and in the same
     // order in analog_voltage_readings If the pins are changed, a
     // map should be made to motors to ADC channels.
