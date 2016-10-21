@@ -506,6 +506,11 @@ ISR(TIMER4_COMPA_vect)
   // Check probing state.
   probe_state_monitor();
 
+  if(settings.mag_gap_enabled) {
+   // Monitor magazine probe to look for missing magazines on carousel
+   magazine_gap_monitor();
+  }
+
   // Reset step out bits.
   st.step_outbits = 0;
 

@@ -223,6 +223,10 @@ void report_grbl_settings() {
   printPgmString(PSTR(" (decay mode, (0..3))"));
   printPgmString(PSTR("\r\n$39=")); print_uint8_base10(settings.force_sensor_level);
   printPgmString(PSTR(" (force sensor level, (0..255))"));
+  printPgmString(PSTR("\r\n$40=")); printFloat_SettingValue(settings.mag_gap_limit);
+  printPgmString(PSTR(" (magazine gap limit, mm)"));
+  printPgmString(PSTR("\r\n$41=")); print_uint8_base10(settings.mag_gap_enabled);
+  printPgmString(PSTR(" (magazine gap enabled, bool)"));
   /* End KEYME Specific */
   printPgmString(PSTR("\r\n"));
 }

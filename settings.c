@@ -239,6 +239,8 @@ uint8_t settings_store_global_setting(int parameter, float value) {
     case 37: settings.microsteps = value; break;
     case 38: settings.decay_mode = value; break;
     case 39: settings.force_sensor_level = value; break;
+    case 40: settings.mag_gap_limit = value; break;
+    case 41: settings.mag_gap_enabled = value; break;
     default:
       return(STATUS_INVALID_STATEMENT);
   }

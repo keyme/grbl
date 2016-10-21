@@ -77,7 +77,7 @@ void limits_enable(uint8_t axes, uint8_t expected) {
   //    LIMIT_PCMSK |= LIMIT_MASK; // Enable specific pins of the Pin Change Interrupt
   limits.expected = bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS)?~expected:expected;
   limits.active = axes<<LIMIT_BIT_SHIFT;
-  limits.mag_gap_check = MAG_GAP_CHECK_ENABLE;
+  limits.mag_gap_check = settings.mag_gap_enabled;
   memcpy(sys.probe_position, sys.position, sizeof(float) * N_AXIS);
 }
 
@@ -194,10 +194,6 @@ void limits_go_home(uint8_t cycle_mask)
     limits_plan_homing(cycle_mask, homing_rate, max_travel, axislock, approach, target, flipped);
 
     do {
-      
-      // Monitor magazine probe to look for missing magazines on carousel
-      magazine_gap_monitor();
-
       // If the home speed needs to be adjusted when an axis finishes homing,
       // calculate new homing values and reset the plan buffer
       if (bit_istrue(sys.state, STATE_HOME_ADJUST)) {
@@ -409,6 +405,6 @@ void limits_force_servo(){
   
   plan_sync_position(); // Sync planner position to current machine position for pull-off move.
 
-  limits.mag_gap_check = MAG_GAP_CHECK_ENABLE; // Start checking magazine gaps on carousel again
+  limits.mag_gap_check = settings.mag_gap_enabled; // Start checking magazine gaps on carousel again
 }
 /* KEYME SPECIFIC END */

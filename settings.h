@@ -84,7 +84,8 @@ typedef struct {
   uint8_t microsteps; //2 bits per motor
   uint8_t decay_mode; //0..3  slow-->fast
   uint8_t force_sensor_level; //0..255  low-->high sensitivity
-  uint8_t mag_gap_limit;
+  float mag_gap_limit; // Maximum gap between two magazines at which point an alarm is thrown
+  uint8_t mag_gap_enabled; //If 0, then do not check the gap between magazines
 //  uint8_t status_report_mask; // Mask to indicate desired report data.
 } settings_t;
 extern settings_t settings;
