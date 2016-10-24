@@ -27,6 +27,7 @@
 #include "motion_control.h"
 #include "limits.h"
 #include "report.h"
+#include "signals.h"
 #include "magazine.h"
 
 #define HOMING_AXIS_SEARCH_SCALAR  1.1  // Axis search distance multiplier. Must be > 1.
@@ -408,3 +409,4 @@ void limits_force_servo(){
   limits.mag_gap_check = settings.mag_gap_enabled; // Start checking magazine gaps on carousel again
 }
 /* KEYME SPECIFIC END */
+

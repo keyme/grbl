@@ -154,10 +154,10 @@ void system_execute_startup(char *line)
     } else {
       if (line[0] != 0) {
         printString(line); // Echo startup line to indicate execution.
-	uint8_t status = gc_execute_line(line);
-	if (status) {
-	  report_status_message(status);
-	}
+        uint8_t status = gc_execute_line(line);
+        if (status) {
+          report_status_message(status);
+        }
       }
     }
   }
@@ -418,3 +418,4 @@ linenumber_t linenumber_peek(){
   }
   return 0;
 }
+

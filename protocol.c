@@ -29,6 +29,7 @@
 #include "motion_control.h"
 #include "report.h"
 #include "progman.h"
+#include "systick.h"
 
 #define STATUS_REPORT_RATE_MS 333  //3 Hz
 
@@ -153,12 +154,12 @@ void protocol_execute_runtime()
   uint8_t rt_exec = SYS_EXEC; // Copy to avoid calling volatile multiple times
   uint32_t clock = masterclock;
 
-  //Give the program manager some time to manage the serial traffic
+  // Give the program manager some time to manage the serial traffic
   progman_execute();
-  
-  // Update force sensor voltage
-  calculate_force_voltage();
 
+  // Service SysTick Callbacks
+  systick_service_callbacks();
+  
   if (clock >= (report_clock +  STATUS_REPORT_RATE_MS) || clock < report_clock) {
     rt_exec|= EXEC_RUNTIME_REPORT;
     sysflags.report_rqsts|=next_report;
@@ -192,7 +193,7 @@ void protocol_execute_runtime()
           // limits. While the position is not lost, the incoming
           // stream could be still engaged and cause a serious crash
           // if it continues afterwards.
-	  progman_execute();
+          progman_execute();
         } while (bit_isfalse(SYS_EXEC,EXEC_RESET));
       }
       bit_false(SYS_EXEC,(EXEC_ALARM | EXEC_CRIT_EVENT));

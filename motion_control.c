@@ -248,7 +248,7 @@ void mc_homing_cycle(uint8_t axis_mask)
   limits_configure();
 }
 
-// Wrapper function for force servoing. This mimics the homing cycle.
+// Wrapper function for limits_force_servo. This mimics the homing cycle.
 void mc_force_servo_cycle()
 {
   sys.state = STATE_FORCESERVO; // Set system state variable
@@ -256,8 +256,11 @@ void mc_force_servo_cycle()
     
   // Perform force servoing.
   limits_force_servo();
+  
   protocol_execute_runtime(); // Check for reset and set system abort.
-  if (sys.abort) { return; } // Did not complete. Alarm state set by mc_alarm.
+  if (sys.abort) { 
+    return; 
+  } // Did not complete. Alarm state set by mc_alarm.
   // Force Servoing Complete! Setup system for normal operation.
 
   // Gcode parser position was circumvented by the limits_force_servo() routine, so sync position now.
