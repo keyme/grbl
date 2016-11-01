@@ -37,11 +37,12 @@
 #include "progman.h"
 #include "adc.h"
 #include "spi.h"
+#include "systick.h"
+#include "signals.h"
 
 // Declare system global variable structure
 system_t sys;
 volatile sys_flags_t sysflags;
-
 
 int main(void)
 {
@@ -51,10 +52,11 @@ int main(void)
     spi_init();      // Setup SPI Control register and pins
   #endif
 
+
   settings_init(); // Load grbl settings from EEPROM
   stepper_init();  // Configure stepper pins and interrupt timers
   system_init();   // Configure pinout pins and pin-change interrupt
-  counters_init(); //configure encoder and counter interrupt.
+  counters_init(); // Configure encoder and counter interrupt.
   adc_init();
 
   memset(&sys, 0, sizeof(sys));  // Clear all system variables
@@ -94,8 +96,14 @@ int main(void)
     plan_reset(); // Clear block buffer and planner variables
     st_reset(); // Clear stepper subsystem variables.
     progman_init();
-    report_revision(); // ADC - read revision voltage form revision voltage divider  
-  
+    systick_init();  // Init systick and systick callbacks
+
+    // Register first signals update callback
+    systick_register_callback(500, signals_callback); // Start polling ADCs 0.5 seconds after init
+
+    // Read revision voltage from revision voltage divider
+    // This ADC is not read continuously
+    signals_update_revision();    
 
     // Sync cleared gcode and planner positions to current system position.
     plan_sync_position();
