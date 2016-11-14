@@ -194,6 +194,8 @@ class GrblCon:
             '/0..4 (X/Y/Z/C) Homes specified axis.'
             'Multiple axes may be provided (or none to home all)',
         'load_gcode': '/1 Send the specified gcode file to grbl',
+        'brake':
+            '/0..4 (X/Y/Z/C) Enabled braking on the specified axes',
         'log': '/0 Display the event log',
         'move':
             '/2 (axis, distance) Moves the specified axis at the '
@@ -492,6 +494,15 @@ class GrblCon:
 
     def _handle_home(self, *args):
         cmd = 'G90\r\n$H'
+
+        for arg in args:
+            if arg in 'XYZCxyzc' and arg not in cmd:
+                cmd += arg
+
+        self._writeline(cmd)
+
+    def _handle_brake(self, *args):
+        cmd = '$B'
 
         for arg in args:
             if arg in 'XYZCxyzc' and arg not in cmd:

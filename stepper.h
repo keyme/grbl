@@ -49,9 +49,15 @@ void st_prep_buffer();
 void st_update_plan_block_parameters();
 
 //called periodically to see if we should disable steppers
-void st_check_disable(); 
+void st_check_disable();
 
 // Called when using the command to change the force sensitivity level
 void adjustForceSensorPWM();
+
+//disable stepper output (0 to enable)
+void st_disable(uint8_t disable, uint8_t mask);
+
+void st_start_shutdown_timer(void);
+void st_stop_shutdown_timer(void);
 
 #endif

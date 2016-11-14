@@ -266,7 +266,7 @@ static uint16_t st_shutdown_delay;  //ms (max = 32767)
 
 //disable stepper output (0 to enable)
 void st_disable(uint8_t disable, uint8_t mask) {
-  if (mask & STEPPERS_LONG_LOCK_MASK) st_shutdown_start = 0;  //clear pending shutdown if we are enabling, or if it has pent.
+  if (mask & sys.lock_mask) st_shutdown_start = 0;  //clear pending shutdown if we are enabling, or if it has pent.
   if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { disable = !disable; } // Apply pin invert.
   if (disable) { STEPPERS_DISABLE_PORT |= (STEPPERS_DISABLE_MASK&mask); }
   else { STEPPERS_DISABLE_PORT &= ~(STEPPERS_DISABLE_MASK&mask); }
@@ -280,6 +280,10 @@ void st_wake_up()
   st_disable(false,~0);
 
   max_servo_steps = MAXSERVODIST * settings.steps_per_mm[Z_AXIS];
+
+  // Disable any pending shutdown timers
+  st_stop_shutdown_timer();
+
 
   if (sys.state & (STATE_CYCLE | STATE_HOMING | STATE_FORCESERVO | STATE_PROBING)) {
     // Initialize stepper output bits
@@ -302,6 +306,16 @@ void st_wake_up()
   }
 }
 
+void st_stop_shutdown_timer(void)
+{
+  st_shutdown_start = 0;
+}
+
+void st_start_shutdown_timer(void)
+{
+  st_shutdown_delay = settings.stepper_idle_lock_time * STEPPERS_LOCK_TIME_MULTIPLE;
+  st_shutdown_start = masterclock | 1; //use nearest odd number to handle rare case of mc==0
+}
 
 // Stepper shutdown
 void st_go_idle()
@@ -321,12 +335,11 @@ void st_go_idle()
       do_disable = true;  //disable all on alarm.
     }
     else if (settings.stepper_idle_lock_time != 0xff) { //else not always on
-      st_shutdown_delay = settings.stepper_idle_lock_time*STEPPERS_LOCK_TIME_MULTIPLE;
-      st_shutdown_start = masterclock|1; //use nearest odd number to handle rare case of mc==0
+      st_start_shutdown_timer();
 
       delay_ms(settings.stepper_idle_lock_time);
       do_disable = true;  //disable most axes now.
-      mask = ~STEPPERS_LONG_LOCK_MASK;
+      mask = ~sys.lock_mask;
     }
   }
   st_disable(do_disable, mask);
@@ -334,8 +347,12 @@ void st_go_idle()
 }
 
 void st_check_disable() {
-  if (st_shutdown_start && ((uint16_t)(masterclock - st_shutdown_start) > st_shutdown_delay)) {
-    st_disable(true, STEPPERS_LONG_LOCK_MASK);  //disable long-dwell axes after timeout
+  // We `or` masterclock with one here to handle the rare edge case
+  // where this check occurs very shortly after we've enabled
+  // st_shutdown_start which can lead to the appearance of masterclock
+  // having wrapped and will incorrectly disable the steppers early
+  if (st_shutdown_start && (((masterclock | 1) - st_shutdown_start) > st_shutdown_delay)) {
+    st_disable(true, sys.lock_mask);  //disable long-dwell axes after timeout
   }
 }
 

@@ -41,7 +41,10 @@
 #include "signals.h"
 
 // Declare system global variable structure
-system_t sys;
+system_t sys = {
+  .lock_mask = STEPPERS_LONG_LOCK_MASK,
+};
+
 volatile sys_flags_t sysflags;
 
 int main(void)
@@ -52,15 +55,12 @@ int main(void)
     spi_init();      // Setup SPI Control register and pins
   #endif
 
-
   settings_init(); // Load grbl settings from EEPROM
   stepper_init();  // Configure stepper pins and interrupt timers
   system_init();   // Configure pinout pins and pin-change interrupt
   counters_init(); // Configure encoder and counter interrupt.
   adc_init();
 
-  memset(&sys, 0, sizeof(sys));  // Clear all system variables
-  memset((void*)&sysflags, 0, sizeof(sysflags));  // and volatile
   SYS_EXEC = 0;   //and mapped port if different
 
   sys.abort = true;   // Set abort to complete initialization

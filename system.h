@@ -96,7 +96,7 @@ typedef struct {
   int32_t position[N_AXIS];      // Real-time machine (aka home) position vector in steps.
                                  // NOTE: This may need to be a volatile variable, if problems arise.
   int32_t probe_position[N_AXIS]; // Last probe position in machine coordinates and steps.
-
+  uint8_t lock_mask;             // Mask which determines the state of axis 'locking' (aka braking)
 } system_t;
 extern system_t sys;
 
