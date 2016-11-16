@@ -59,6 +59,8 @@ static const uint8_t scs_pin_lookup[4] = {
   
 };
 
+static int32_t max_servo_steps;
+
 // Initialization values for spi stepper drivers
 // Format: MSB, LSB
 static const uint8_t stepper_init_registers[4][18] = {
@@ -277,6 +279,8 @@ void st_wake_up()
   // Enable all stepper drivers.
   st_disable(false,~0);
 
+  max_servo_steps = MAXSERVODIST * settings.steps_per_mm[Z_AXIS];
+
   if (sys.state & (STATE_CYCLE | STATE_HOMING | STATE_FORCESERVO | STATE_PROBING)) {
     // Initialize stepper output bits
     st.dir_outbits = settings.dir_invert_mask;
@@ -401,8 +405,13 @@ void st_force_check()
   const uint8_t positive_direction = bit_istrue(st.dir_outbits, (1 << Z_DIRECTION_BIT));
   const uint8_t positive_stop = (positive_direction && (FORCE_VAL >= limits.bump_grip_force));
   const uint8_t negative_stop = (!positive_direction && (FORCE_VAL <= limits.bump_grip_force));
-    
-  if (positive_stop || negative_stop) {
+
+  // Stop servoing when max gripping distance is reached, but do not throw
+  // an alarm. Cutter can decide whether or not it wants to continue
+  // if the desired force is not reached.
+  const bool max_reached = (sys.position[Z_AXIS] >= max_servo_steps);
+
+  if (positive_stop || negative_stop || max_reached) {
     limits.isservoing = 0;
     request_report(REQUEST_STATUS_REPORT | REQUEST_LIMIT_REPORT, LINENUMBER_EMPTY_BLOCK);    
   }
