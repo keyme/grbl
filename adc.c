@@ -2,6 +2,7 @@
 #include "system.h"
 #include "adc.h"
 #include "nuts_bolts.h"
+#include "settings.h"
 
 #define ADMUX_SELECTION_MASK    0x7
 #define MUX5_MASK               0x8
@@ -9,16 +10,12 @@
 channel_t active_channel = 0;
 
 uint8_t channel_map[VOLTAGE_SENSOR_COUNT] = {
-  F_ADC,
-  Y_ADC,
-  Z_ADC,
-  C_ADC,
-  #ifdef USE_LOAD_CELL
-    LC_ADC,
-  #else
-    F_ADC,
-  #endif
-  RD_ADC
+    X_ADC,
+    Y_ADC,
+    Z_ADC,
+    C_ADC,
+    0,  // This value is initialized adc_init
+    RD_ADC
 };
 
 void setup_adc_channel(uint8_t channel) 
@@ -74,12 +71,15 @@ void adc_init()
   // These pins are initialized here because there are 
   // no other where the pins can be initialized with the
   // associated peripherals, such as with the stepper motors.
-  
-  #ifdef USE_LOAD_CELL
-    LC_DDR &= ~(LC_MASK);  
-  #else
+
+
+  if (settings.use_load_cell) {
+    LC_DDR &= ~(LC_MASK);
+    channel_map[FORCE] = LC_ADC;
+  } else {
     FORCE_DDR &= ~(FORCE_MASK); // Force servo
-  #endif
+    channel_map[FORCE] = F_ADC;
+  }
 
   // Set revision divider pin as an input
   RD_DDR &= ~(RD_MASK);

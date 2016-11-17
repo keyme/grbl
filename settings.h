@@ -72,21 +72,21 @@ typedef struct {
   uint8_t pulse_microseconds;
   uint8_t step_invert_mask;
   uint8_t dir_invert_mask;
-  uint8_t stepper_idle_lock_time; // If max value 255, steppers do not disable.
+  uint8_t stepper_idle_lock_time;  // If max value 255, steppers do not disable.
   float junction_deviation;
   float arc_tolerance;
   uint8_t flags;  // Contains default boolean settings
   uint8_t homing_dir_mask;
-  float homing_feed_rate; //slow resolve sensor
+  float homing_feed_rate;  //slow resolve sensor
   float homing_seek_rate[N_AXIS]; //seek to sensor
   uint16_t homing_debounce_delay;
   float homing_pulloff ;
-  uint8_t microsteps; //2 bits per motor
-  uint8_t decay_mode; //0..3  slow-->fast
-  uint8_t force_sensor_level; //0..255  low-->high sensitivity
-  float mag_gap_limit; // Maximum gap between two magazines at which point an alarm is thrown
-  uint8_t mag_gap_enabled; //If 0, then do not check the gap between magazines
-//  uint8_t status_report_mask; // Mask to indicate desired report data.
+  uint8_t microsteps;  //2 bits per motor
+  uint8_t decay_mode;  //0..3  slow-->fast
+  uint8_t force_sensor_level;  //0..255  low-->high sensitivity
+  float mag_gap_limit;  // Maximum gap between two magazines at which point an alarm is thrown
+  uint8_t mag_gap_enabled;  //If 0, then do not check the gap between magazines
+  uint8_t use_load_cell;  // 0 - Force Sensor, 1 - Load Cell
 } settings_t;
 extern settings_t settings;
 

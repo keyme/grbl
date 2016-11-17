@@ -227,6 +227,8 @@ void report_grbl_settings() {
   printPgmString(PSTR(" (magazine gap limit, mm)"));
   printPgmString(PSTR("\r\n$41=")); print_uint8_base10(settings.mag_gap_enabled);
   printPgmString(PSTR(" (magazine gap enabled, bool)"));
+  printPgmString(PSTR("\r\n$42=")); print_uint8_base10(settings.use_load_cell);
+  printPgmString(PSTR(" (use load cell, bool)"));
   /* End KEYME Specific */
   printPgmString(PSTR("\r\n"));
 }

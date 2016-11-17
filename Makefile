@@ -51,10 +51,6 @@ ifneq ($(SPI),)
   CFLAGS += -DSPI_STEPPER_DRIVER
 endif
 
-ifneq ($(USE_LOAD_CELL),)
-  CFLAGS += -DUSE_LOAD_CELL
-endif
-
 ifneq ($(USE_CAROUSEL_LOSS),)
   CFLAGS += -DUSE_CAROUSEL_LOSS
 endif

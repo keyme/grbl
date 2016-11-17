@@ -103,7 +103,9 @@ void settings_reset() {
   settings.microsteps = DEFAULT_MICROSTEPPING;
   settings.decay_mode = DEFAULT_DECAY_MODE;
   settings.force_sensor_level = DEFAULT_FORCE_SENSOR_LEVEL;
+  settings.mag_gap_enabled = DEFAULT_MAG_GAP_ENABLED;
   settings.mag_gap_limit = DEFAULT_MAG_GAP_LIMIT;
+  settings.use_load_cell = DEFAULT_USE_LOAD_CELL;
   write_global_settings();
 }
 
@@ -241,6 +243,7 @@ uint8_t settings_store_global_setting(int parameter, float value) {
     case 39: settings.force_sensor_level = value; break;
     case 40: settings.mag_gap_limit = value; break;
     case 41: settings.mag_gap_enabled = value; break;
+    case 42: settings.use_load_cell = value; break;
     default:
       return(STATUS_INVALID_STATEMENT);
   }

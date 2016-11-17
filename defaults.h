@@ -110,6 +110,8 @@
   #define DEFAULT_COUNTS_PER_IDX 4000  //counts per encoder rev
   #define DEFAULT_FORCE_SENSOR_LEVEL 77 // 1.5V out of 5.0V=255 max
   #define DEFAULT_MAG_GAP_LIMIT 12.5 //in mm (units)
+  #define DEFAULT_MAG_GAP_ENABLED false
+  #define DEFAULT_USE_LOAD_CELL false
 #endif
 
 #ifdef DEFAULTS_BENCH
