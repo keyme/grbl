@@ -17,7 +17,6 @@
   You should have received a copy of the GNU General Public License
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
-  
 #include "system.h"
 #include "probe.h"
 #include "counters.h"
@@ -38,12 +37,24 @@ struct probe_state probe;
 static struct {
   uint8_t idx;
   uint8_t mask;
+  volatile uint8_t *ddr;
+  // Named in_port rather that pin for clarity
   volatile uint8_t *in_port;
+  volatile uint8_t *port;
 } sensor_map[] = {
   {
     .idx = MAG_SENSOR,
     .mask = MAGAZINE_ALIGNMENT_MASK,
-    .in_port = &MAGAZINE_ALIGNMENT_PIN
+    .ddr = &MAGAZINE_ALIGNMENT_DDR, 
+    .in_port = &MAGAZINE_ALIGNMENT_PIN,
+    .port = &MAGAZINE_ALIGNMENT_PORT
+  },
+  {
+    .idx = KEY_SENSOR,
+    .mask = (1 << Z_LIMIT_BIT),
+    .ddr = &LIMIT_DDR,
+    .in_port = &LIMIT_PIN,
+    .port = &LIMIT_PORT
   }
 };
 
@@ -55,11 +66,13 @@ void set_active_probe(enum e_sensor sensor)
 // Probe pin initialization routine.
 void probe_init() 
 {
-  // Configure as input pins
-  MAGAZINE_ALIGNMENT_DDR &= ~(MAGAZINE_ALIGNMENT_MASK);
+  uint8_t len = sizeof(sensor_map) / sizeof(sensor_map[0]);
+  uint8_t idx;
+  for (idx = 0; idx < len; idx++) {
+    *sensor_map[idx].ddr &= ~(sensor_map[idx].mask);
+    *sensor_map[idx].port |= sensor_map[idx].mask;
 
-  // Enable internal pull-up resistors. Normal high operation.
-  MAGAZINE_ALIGNMENT_PORT |= MAGAZINE_ALIGNMENT_MASK;
+  }
 
   probe.active_sensor = E_SENSOR_TYPES;
   probe.probe_reached = 0;
@@ -130,6 +143,7 @@ bool probe_loop()
 
 }
 
+// This function adds support for gcode G38.2
 void probe_move_to_sensor(float * target, float feed_rate, uint8_t invert_feed_rate,
   linenumber_t line_number, enum e_sensor sensor)
 {
@@ -159,11 +173,10 @@ void probe_move_to_sensor(float * target, float feed_rate, uint8_t invert_feed_r
   probe.isprobing = 1;
 
   sys.state = STATE_PROBING;
-  
-  if (!probe_loop())
-    return;
-
+ 
   uint8_t probe_fail;
+  probe_fail = !probe_loop();
+  
   if (sensor == MAG_SENSOR) {
     probe_fail = (probe.carousel_probe_state == PROBE_ACTIVE);
     if (probe_fail)
@@ -189,10 +202,8 @@ void probe_move_to_sensor(float * target, float feed_rate, uint8_t invert_feed_r
   plan_reset();
   plan_sync_position();
 
-  mc_line(target, feed_rate, invert_feed_rate, PROBE_LINE_NUMBER);
-
   SYS_EXEC |= EXEC_CYCLE_START;
-  
+
   // Complete pull-off action
   protocol_buffer_synchronize();
 
@@ -205,9 +216,9 @@ void probe_move_to_sensor(float * target, float feed_rate, uint8_t invert_feed_r
   sys.state = STATE_IDLE;
   st_go_idle();
 
-  if (sensor == MAG_SENSOR)
-    report_probe_parameters(probe_fail);
   request_eol_report();
+  report_probe_parameters(probe_fail);
+  
 }
 
 // This function monitors the carousel magazine alignment probe
