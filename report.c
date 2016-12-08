@@ -100,6 +100,15 @@ void report_status_message(uint8_t status_code)
   }
 }
 
+// Prints debug message which shows up in MOTION
+void report_debug_message(const char *s)
+{
+  printPgmString(PSTR("DEBUG: "));
+  while (*s)
+    printString(s++);
+
+}
+
 // Prints alarm messages.
 void report_alarm_message(int8_t alarm_code)
 {

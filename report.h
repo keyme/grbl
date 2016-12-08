@@ -66,6 +66,9 @@
 // Prints system status messages.
 void report_status_message(uint8_t status_code);
 
+// Prints debug message which shows up in MOTION
+void report_debug_message(const char *s);
+
 // Prints system alarm messages.
 void report_alarm_message(int8_t alarm_code);
 
