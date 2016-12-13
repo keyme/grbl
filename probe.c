@@ -50,7 +50,14 @@ static struct {
     .port = &MAGAZINE_ALIGNMENT_PORT
   },
   {
-    .idx = KEY_SENSOR,
+    .idx = KEY_SENSOR_FRONT,
+    .mask = (1 << Z_LIMIT_BIT),
+    .ddr = &LIMIT_DDR,
+    .in_port = &LIMIT_PIN,
+    .port = &LIMIT_PORT
+  },
+  {
+    .idx = KEY_SENSOR_BACK,
     .mask = (1 << Z_LIMIT_BIT),
     .ddr = &LIMIT_DDR,
     .in_port = &LIMIT_PIN,
