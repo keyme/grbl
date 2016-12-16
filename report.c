@@ -104,8 +104,9 @@ void report_status_message(uint8_t status_code)
 void report_debug_message(const char *s)
 {
   printPgmString(PSTR("DEBUG: "));
-  while (*s)
-    printString(s++);
+  printString(s);
+
+  printPgmString(PSTR("\r\n"));
 
 }
 
