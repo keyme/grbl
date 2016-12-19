@@ -609,13 +609,13 @@ ISR(TIMER4_COMPA_vect)
 
   if (limits.isservoing) 
     st_force_check();
- 
-  // Used to move to carousel magazine
-  probe_carousel_monitor();
 
   // Check if probe is reached, if probing
   if (probe.isprobing)
     probe_check();
+
+  // Used to move to carousel magazine
+  probe_carousel_monitor();
 
   st.step_count--; // Decrement step events count
   if (st.step_count == 0) {
