@@ -44,7 +44,8 @@ FUSES      = -U hfuse:w:0xd8:m -U lfuse:w:0xff:m
 # Tune the lines below only if you know what you are doing:
 
 AVRDUDE = avrdude  $(PROGRAMMER) -p $(DEVICE) -B 10 -F -D
-CFLAGS = -Wall -Werror -Wextra -Os -fstack-usage -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
+CFLAGS = -Wall -Werror -Wextra -Os -fstack-usage --std=c11 \
+	-DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 COMPILE = avr-gcc $(CFLAGS) -I. -ffunction-sections
 
 ifneq ($(SPI),)
