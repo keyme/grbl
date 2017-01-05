@@ -28,6 +28,8 @@
 
 enum e_sensor {
   MAG_SENSOR = 0,
+  // For now, this is mapped to the gripper's home sensor, it should be changed
+  // when we get new hardware to support key measurements with probing
   KEY_SENSOR,
   E_SENSOR_TYPES
 };
