@@ -176,7 +176,10 @@ void probe_move_to_sensor(float * target, float feed_rate, uint8_t invert_feed_r
  
   uint8_t probe_fail;
   probe_fail = !probe_loop();
-  
+ 
+  if (!probe_fail)
+    memcpy(sys.probe_position, sys.position, sizeof(float) * N_AXIS);
+
   if (sensor == MAG_SENSOR) {
     probe_fail = (probe.carousel_probe_state == PROBE_ACTIVE);
     if (probe_fail)
