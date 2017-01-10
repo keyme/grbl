@@ -101,8 +101,8 @@ void calculate_motor_voltage();
 void calculate_force_voltage();
 void report_revision();
 
-// Reporting of magazine slop
-void report_magazine_slop();
+// Reporting of sensor edges
+void report_sensor_edge(uint8_t sensor, bool state, int32_t axis_position);
 
 // Prints recorded probe position
 void report_probe_parameters(uint8_t error);

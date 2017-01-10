@@ -57,7 +57,7 @@
 #define REQUEST_LIMIT_REPORT   bit(1)
 #define REQUEST_COUNTER_REPORT bit(2)
 #define REQUEST_VOLTAGE_REPORT bit(3)
-#define REQUEST_SLOP_REPORT    bit(4)
+#define REQUEST_EDGE_REPORT    bit(4)
 
 // Define system state bit map. The state variable primarily tracks the individual functions
 // of Grbl to manage each without overlapping. It is also used as a messaging flag for
