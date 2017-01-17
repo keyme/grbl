@@ -49,8 +49,8 @@ bool progman_handle_runtime_cmd(char data)
   case CMD_LIMIT_REPORT:
     request_report(REQUEST_LIMIT_REPORT,0);
     break;
-  case CMD_SLOP_REPORT:
-    request_report(REQUEST_SLOP_REPORT,0);
+  case CMD_EDGE_REPORT:
+    request_report(REQUEST_EDGE_REPORT,0);
     break;
   case CMD_CYCLE_START:
     /* Set as true */

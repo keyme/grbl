@@ -5,6 +5,8 @@
 #ifndef magazine_h
 #define magazine_h
 
+#define MAX_EDGE_EVENTS 2
+
 // Magazine allignment pin initialization routine
 void magazine_init();
 
@@ -14,7 +16,6 @@ void magazine_init();
 // specified threshold.
 void magazine_gap_monitor();
 
-int32_t magazine_lash(void);
-int32_t magazine_spacing(void);
+void magazine_report_edge_events(void);
 
 #endif

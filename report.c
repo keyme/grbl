@@ -412,14 +412,15 @@ void report_voltage()
   printPgmString(PSTR("\r\n"));
 }
 
-void report_magazine_slop()
+void report_sensor_edge(uint8_t sensor, bool state, int32_t axis_position)
 {
-  printPgmString( PSTR("%") );
-  printInteger(magazine_lash());
-  printPgmString(PSTR(","));
-  printInteger(magazine_spacing());
   printPgmString(PSTR("%"));
-  printPgmString(PSTR("\r\n"));
+  printInteger(sensor);
+  printPgmString(PSTR(","));
+  printInteger((int)state);
+  printPgmString(PSTR(","));
+  printInteger(axis_position);
+  printPgmString(PSTR("%\r\n"));
 }
 
 // Prints real-time data. This function grabs a real-time snapshot of the stepper subprogram
