@@ -1,0 +1,123 @@
+STEP 3 Error Checking:
+
+Error-check all commands and values passed in this function. This 
+step ensures all of the commands are valid for execution and follows the
+NIST standard as closely as possible. If an error is found, all commands
+and values in this block are dumped and will not update the active system
+g-code modes. If the block is ok, the active system g-code modes will be
+updated based on the commands of this block, and signal for it to be
+executed. 
+  
+Also, we have to pre-convert all of the values passed based on the modes
+set by the parsed block. There are a number of error-checks that require
+target information that can only be accurately calculated if we convert
+these values in conjunction with the error-checking. This relegates the
+next execution step as only updating the system g-code modes and
+performing the programmed actions in order. The execution step should not
+require any conversion calculations and would only require minimal checks
+necessary to execute.
+
+NOTE: At this point, the g-code block has been parsed and the block line
+can be freed.
+    
+NOTE: It's also possible, at some future point, to break up STEP 2, to
+allow piece-wise parsing of the block on a per-word basis, rather than
+the entire block. This could remove the need for maintaining a large string
+variable for the entire block and free up some memory. To do this, this
+would simply need to retain all of the data in STEP 1, such as the new 
+block data struct, the modal group and value bitflag tracking variables,
+and axis array indices compatible variables. This data contains all of
+the information necessary to error-check the new g-code block when the
+EOL character is received. However, this would break Grbl's startup lines
+in how it currently works and would require some refactoring to make it
+compatible.
+
+NOTE ABOUT MOTION_MODE_CW_ARC:
+Converting radius value to proper units:
+  
+  We need to calculate the center of the circle that has the designated radius and passes
+  through both the current position and the target position. This method calculates the following
+  set of equations where [x,y] is the vector from current to target position, d == magnitude of 
+  that vector, h == hypotenuse of the triangle formed by the radius of the circle, the distance to
+  the center of the travel vector. A vector perpendicular to the travel vector [-y,x] is scaled to the 
+  length of h [-y/d*h, x/d*h] and added to the center of the travel vector [x/2,y/2] to form the new point 
+  [i,j] at [x/2-y/d*h, y/2+x/d*h] which will be the center of our arc.
+
+  d^2 == x^2 + y^2
+  h^2 == r^2 - (d/2)^2
+  i == x/2 - y/d*h
+  j == y/2 + x/d*h
+
+                                                       O <- [i,j]
+                                                    -  |
+                                          r      -     |
+                                              -        |
+                                           -           | h
+                                        -              |
+                          [0,0] ->  C -----------------+--------------- T  <- [x,y]
+                                    | <------ d/2 ---->|
+
+  C - Current position
+  T - Target position
+  O - center of circle that pass through both C and T
+  d - distance from C to T
+  r - designated radius
+  h - distance from center of CT to O
+
+  Expanding the equations:
+
+  d -> sqrt(x^2 + y^2)
+  h -> sqrt(4 * r^2 - x^2 - y^2)/2
+  i -> (x - (y * sqrt(4 * r^2 - x^2 - y^2)) / sqrt(x^2 + y^2)) / 2 
+  j -> (y + (x * sqrt(4 * r^2 - x^2 - y^2)) / sqrt(x^2 + y^2)) / 2
+
+  Which can be written:
+
+  i -> (x - (y * sqrt(4 * r^2 - x^2 - y^2))/sqrt(x^2 + y^2))/2
+  j -> (y + (x * sqrt(4 * r^2 - x^2 - y^2))/sqrt(x^2 + y^2))/2
+
+  Which we for size and speed reasons optimize to:
+
+  h_x2_div_d = sqrt(4 * r^2 - x^2 - y^2)/sqrt(x^2 + y^2)
+  i = (x - (y * h_x2_div_d))/2
+  j = (y + (x * h_x2_div_d))/2       
+      
+
+NOTE ABOUT MOTION_CCW_ARC
+
+     The counter clockwise circle lies to the left of the target direction. When offset is positive,
+     the left hand circle will be generated - when it is negative the right hand circle is generated.
+
+                                                         T  <-- Target position
+                                         
+                                                         ^ 
+              Clockwise circles with this center         | Clockwise circles with this center will have
+              will have > 180 deg of angular travel      | < 180 deg of angular travel, which is a good thing!
+                                               \         |         /   
+  center of arc when h_x2_div_d is positive ->  x <----- | -----> x <- center of arc when h_x2_div_d
+                                                         |             is negative
+                                                         |
+                                         
+                                                         C  <-- Current position                                 
+  Not supported:
+
+  - Canned cycles
+  - Tool radius compensation
+  - A,B,C-axes
+  - Evaluation of expressions
+  - Variables
+  - Override control (TBD)
+  - Tool changes
+  - Switches
+   
+   (*) Indicates optional parameter, enabled through config.h and re-compile
+   group 0 = {G92.2, G92.3} (Non modal: Cancel and re-enable G92 offsets)
+   group 1 = {G81 - G89} (Motion modes: Canned cycles)
+   group 4 = {M1} (Optional stop, ignored)
+   group 6 = {M6} (Tool change)
+   group 7 = {G40, G41, G42} cutter radius compensation
+   group 8 = {G43} tool length offset (But G43.1/G94 IS SUPPORTED)
+   group 8 = {*M7} enable mist coolant
+   group 9 = {M48, M49} enable/disable feed and speed override switches
+   group 10 = {G98, G99} return mode canned cycles
+   group 13 = {G61, G61.1, G64} path control mode
