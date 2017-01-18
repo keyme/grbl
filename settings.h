@@ -25,8 +25,17 @@
 #include "system.h"
 
 
-// define GRBL version and build
-#define GRBL_VERSION "0.9K.3.7"
+// This is a bit of compiler magic to ensure that we don't
+// accidentally optimize away variables that are only used by external
+// tools (version numbers, ident blocks, etc)
+#define ALWAYS_KEEP(v) __asm__ __volatile__("" :: "m" (v))
+
+// This is a preprocessor trick. STR simply token pastes the value
+// given to it. By wrapping a defined value in XSTR, it forces the
+// evaluation of the token before pasting. So if you defined 'VERSION'
+// via -DVERSION=foo, XSTR(VERSION) == "foo", and STR(VERSION) == "VERSION"
+#define STR(s) #s
+#define XSTR(s) STR(s)
 
 #define GRBL_VERSION_BUILD __DATE__ " " __TIME__
 

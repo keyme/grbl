@@ -28,6 +28,8 @@
 #                is connected.
 # FUSES ........ Parameters for avrdude to flash the fuses appropriately.
 
+VERSION = 0.3.8
+
 DEVICE     ?= atmega2560
 CLOCK      = 16000000
 PORT       ?= /dev/ttyUSB0
@@ -45,7 +47,7 @@ FUSES      = -U hfuse:w:0xd8:m -U lfuse:w:0xff:m
 
 AVRDUDE = avrdude  $(PROGRAMMER) -p $(DEVICE) -B 10 -F -D
 CFLAGS = -Wall -Werror -Wextra -Os -fstack-usage --std=c11 \
-	-DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
+	-DF_CPU=$(CLOCK) -mmcu=$(DEVICE) -DGRBL_VERSION=$(VERSION)
 COMPILE = avr-gcc $(CFLAGS) -I. -ffunction-sections
 
 ifneq ($(SPI),)
