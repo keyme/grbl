@@ -158,7 +158,7 @@ void report_feedback_message(uint8_t message_code)
 // Welcome message
 void report_init_message()
 {
-  printPgmString(PSTR("\r\nGrbl " GRBL_VERSION " ['$' for help]\r\n"));
+  printPgmString(PSTR("\r\nGrbl " XSTR(GRBL_VERSION) " ['$' for help]\r\n"));
 }
 
 // Grbl help message
@@ -377,7 +377,7 @@ void report_startup_line(uint8_t n, char *line)
 // Prints build info line
 void report_build_info(char *line)
 {
-  printPgmString(PSTR("[" GRBL_VERSION ", " GRBL_VERSION_BUILD " (" GRBL_PLATFORM ") :"));
+  printPgmString(PSTR("[" XSTR(GRBL_VERSION) ", " GRBL_VERSION_BUILD " (" GRBL_PLATFORM ") :"));
   printString(line);
   printPgmString(PSTR("]\r\n"));
 }

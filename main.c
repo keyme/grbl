@@ -45,6 +45,11 @@ system_t sys = {
   .lock_mask = STEPPERS_LONG_LOCK_MASK,
 };
 
+#ifndef GRBL_VERSION
+  #error "GRBL_VERSION is not defined, please ensure it is defined in the Makefile"
+#endif
+const char* version_string = "VERSION=" XSTR(GRBL_VERSION);
+
 volatile sys_flags_t sysflags;
 
 int main(void)
