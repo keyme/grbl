@@ -227,6 +227,7 @@ void probe_move_to_sensor(float * target, float feed_rate, uint8_t invert_feed_r
   st_go_idle();
 
   request_eol_report();
+  protocol_execute_runtime(); 
   report_probe_parameters(probe_fail);
   
 }
