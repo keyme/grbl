@@ -136,7 +136,14 @@ void system_execute_startup(char *line);
 // But We don't need such a big value, and we do need the high bit free
 //#define MAX_LINE_NUMBER 9999999
 #define LINENUMBER_EMPTY_BLOCK 0x8000 //the other bit, used as a flag
+
+// These values correlate to the values in grbl_driver in motion
 #define LINENUMBER_SPECIAL      0x4000 //denotes Homing and Probing among a couple other processes
+#define LINENUMBER_PROBE        LINENUMBER_SPECIAL
+#define LINENUMBER_LIMIT        LINENUMBER_SPECIAL+1
+#define LINENUMBER_HOME         LINENUMBER_SPECIAL+2
+#define LINENUMBER_EDGE         LINENUMBER_SPECIAL+4
+
 #define LINENUMBER_SPECIAL_SERVO 0x10000 //denotes force servoing
 #define LINENUMBER_MAX         (LINENUMBER_SPECIAL-1)
 #define LINEMASK_OFF_EDGE         (0x0)
