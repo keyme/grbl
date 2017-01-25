@@ -54,6 +54,9 @@ volatile sys_flags_t sysflags;
 
 int main(void)
 {
+  // Ensure that the compiler doesn't try to throw out the version string
+  ALWAYS_KEEP(version_string);
+
   // Initialize system upon power-up.
   serial_init();   // Setup serial baud rate and interrupts
   #ifdef SPI_STEPPER_DRIVER
