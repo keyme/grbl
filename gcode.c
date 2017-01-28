@@ -973,8 +973,6 @@ uint8_t gc_execute_line(char *line)
         case MOTION_MODE_PROBE:          
           probe_move_to_sensor(gc_block.values.xyz, gc_state.feed_rate,
           gc_state.modal.feed_rate, gc_block.values.n, gc_block.values.p); 
-          linenumber_insert(LINENUMBER_PROBE);
-          request_eol_report();
           retval = STATUS_QUIET_OK;
 
       }
