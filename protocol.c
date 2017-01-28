@@ -91,7 +91,6 @@ void protocol_main_loop()
   } else {
     // All systems go!
     sys.state = STATE_IDLE; // Set system to ready. Clear all state flags.
-    system_execute_startup(line); // Execute startup script.
   }
 
   // ---------------------------------------------------------------------------------

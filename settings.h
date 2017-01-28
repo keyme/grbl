@@ -58,8 +58,6 @@
 // developments.
 #define EEPROM_ADDR_GLOBAL 1
 #define EEPROM_ADDR_PARAMETERS 512
-#define EEPROM_ADDR_STARTUP_BLOCK 768
-#define EEPROM_ADDR_BUILD_INFO 992
 
 // Define EEPROM address indexing for coordinate parameters
 //@TODO: can reduce this for EEPROM space.

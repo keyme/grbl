@@ -146,25 +146,6 @@ ISR(TIMER2_COMPA_vect)
   masterclock++;
 }
 
-// Executes user startup script, if stored.
-void system_execute_startup(char *line)
-{
-  uint8_t n;
-  for (n=0; n < N_STARTUP_LINE; n++) {
-    if (!(settings_read_startup_line(n, line))) {
-      report_status_message(STATUS_SETTING_READ_FAIL);
-    } else {
-      if (line[0] != 0) {
-        printString(line); // Echo startup line to indicate execution.
-        uint8_t status = gc_execute_line(line);
-        if (status) {
-          report_status_message(status);
-        }
-      }
-    }
-  }
-}
-
 // Directs and executes one line of formatted input from protocol_process. While mostly
 // incoming streaming g-code blocks, this also executes Grbl internal commands, such as
 // settings, initiating the homing cycle, and toggling switch states. This differs from
@@ -176,7 +157,6 @@ void system_execute_startup(char *line)
 uint8_t system_execute_line(char *line)
 {
   uint8_t char_counter = 1;
-  uint8_t helper_var = 0; // Helper variable
   float parameter, value;
   switch( line[char_counter] ) {
     case 0 : report_grbl_help(); break;
@@ -336,7 +316,6 @@ uint8_t system_execute_line(char *line)
             report_status_message(STATUS_OK); //report that we are homing
             mc_homing_cycle(home_mask);
             
-          if (!sys.abort) { system_execute_startup(line); } // Execute startup scripts after successful homing.
             return STATUS_QUIET_OK; //already said ok
           } else { return(STATUS_SETTING_DISABLED); }
           break;
@@ -362,64 +341,9 @@ uint8_t system_execute_line(char *line)
               limits.bump_grip_force = (uint16_t)value;
               mc_force_servo_cycle(); 
           }      
-          if (!sys.abort) {
-            system_execute_startup(line);
-          }
+
           return STATUS_QUIET_OK;
           break;
-        case 'I' : // Print or store build info. [IDLE/ALARM]
-          if ( line[++char_counter] == 0 ) {
-            if (!(settings_read_build_info(line))) {
-              report_status_message(STATUS_SETTING_READ_FAIL);
-            } else {
-              report_build_info(line);
-              return STATUS_QUIET_OK;
-            }
-          } else { // Store startup line [IDLE/ALARM]
-            if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
-            helper_var = char_counter; // Set helper variable as counter to start of user info line.
-            do {
-              line[char_counter-helper_var] = line[char_counter];
-            } while (line[char_counter++] != 0);
-            settings_store_build_info(line);
-          }
-          break;
-        case 'N' : // Startup lines. [IDLE/ALARM]
-          if ( line[++char_counter] == 0 ) { // Print startup lines
-            for (helper_var=0; helper_var < N_STARTUP_LINE; helper_var++) {
-              if (!(settings_read_startup_line(helper_var, line))) {
-                report_status_message(STATUS_SETTING_READ_FAIL);
-              } else {
-                report_startup_line(helper_var,line);
-              }
-            }
-            break;
-          } else { // Store startup line [IDLE Only] Prevents motion during ALARM.
-            if (sys.state != STATE_IDLE) { return(STATUS_IDLE_ERROR); } // Store only when idle.
-            helper_var = true;  // Set helper_var to flag storing method.
-            // No break. Continues into default: to read remaining command characters.
-          }
-        default :  // Storing setting methods [IDLE/ALARM]
-          if(!read_float(line, &char_counter, &parameter)) { return(STATUS_BAD_NUMBER_FORMAT); }
-          if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
-          if (helper_var) { // Store startup line
-            // Prepare sending gcode block to gcode parser by shifting all characters
-            helper_var = char_counter; // Set helper variable as counter to start of gcode block
-            do {
-              line[char_counter-helper_var] = line[char_counter];
-            } while (line[char_counter++] != 0);
-            // Execute gcode block to ensure block is valid.
-            helper_var = gc_execute_line(line); // Set helper_var to returned status code.
-            if (helper_var) { return(helper_var); }
-            else {
-              helper_var = trunc(parameter); // Set helper_var to int value of parameter
-              settings_store_startup_line(helper_var,line);
-            }
-          } else { // Store global setting.
-            if(!read_float(line, &char_counter, &value)) { return(STATUS_BAD_NUMBER_FORMAT); }
-            if(line[char_counter] != 0) { return(STATUS_INVALID_STATEMENT); }
-            return(settings_store_global_setting(parameter, value));
-          }
       }
   }
   return(STATUS_OK); // If '$' command makes it to here, then everything's ok.

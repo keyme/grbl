@@ -29,21 +29,6 @@
 settings_t settings;
 
 
-// Method to store startup lines into EEPROM
-void settings_store_startup_line(uint8_t n, char *line)
-{
-  uint16_t addr = n*(LINE_BUFFER_SIZE+1)+EEPROM_ADDR_STARTUP_BLOCK;
-  memcpy_to_eeprom_with_checksum(addr,(char*)line, LINE_BUFFER_SIZE);
-}
-
-
-// Method to store build info into EEPROM
-void settings_store_build_info(char *line)
-{
-  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_BUILD_INFO,(char*)line, LINE_BUFFER_SIZE);
-}
-
-
 // Method to store coord data parameters into EEPROM
 void settings_write_coord_data(uint8_t coord_select, float *coord_data)
 {
@@ -108,36 +93,6 @@ void settings_reset() {
   settings.use_load_cell = DEFAULT_USE_LOAD_CELL;
   write_global_settings();
 }
-
-
-// Reads startup line from EEPROM. Updated pointed line string data.
-uint8_t settings_read_startup_line(uint8_t n, char *line)
-{
-  uint16_t addr = n*(LINE_BUFFER_SIZE+1)+EEPROM_ADDR_STARTUP_BLOCK;
-  if (!(memcpy_from_eeprom_with_checksum((char*)line, addr, LINE_BUFFER_SIZE))) {
-    // Reset line with default value
-    line[0] = 0; // Empty line
-    settings_store_startup_line(n, line);
-    return(false);
-  } else {
-    return(true);
-  }
-}
-
-
-// Reads startup line from EEPROM. Updated pointed line string data.
-uint8_t settings_read_build_info(char *line)
-{
-  if (!(memcpy_from_eeprom_with_checksum((char*)line, EEPROM_ADDR_BUILD_INFO, LINE_BUFFER_SIZE))) {
-    // Reset line with default value
-    line[0] = 0; // Empty line
-    settings_store_build_info(line);
-    return(false);
-  } else {
-    return(true);
-  }
-}
-
 
 // Read selected coordinate data from EEPROM. Updates pointed coord_data value.
 uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
