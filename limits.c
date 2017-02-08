@@ -326,7 +326,7 @@ void limits_soft_check(float *target)
         } while ( sys.state != STATE_IDLE || sys.state != STATE_QUEUED);
       }
 
-      mc_reset(); // Issue system reset and ensure spindle and coolant are shutdown.
+      mc_reset(); // Issue system reset and ensure spindle is shutdown.
       sys.alarm |= ALARM_SOFT_LIMIT;
       SYS_EXEC |= (EXEC_ALARM | EXEC_CRIT_EVENT); // Indicate soft limit critical event
       protocol_execute_runtime(); // Execute to enter critical event loop and system abort

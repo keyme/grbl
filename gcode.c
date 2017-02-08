@@ -25,7 +25,6 @@
 #include "gcode.h"
 #include "motion_control.h"
 #include "spindle_control.h"
-#include "coolant_control.h"
 #include "probe.h"
 #include "report.h"
 
@@ -298,19 +297,6 @@ uint8_t gc_execute_line(char *line)
               case 5: gc_block.modal.spindle = SPINDLE_DISABLE; break;
             }
             break;            
-         #ifdef ENABLE_M7  
-          case 7:
-         #endif
-          case 8: case 9:
-            word_bit = MODAL_GROUP_M8; 
-            switch(int_value) {      
-             #ifdef ENABLE_M7
-              case 7: gc_block.modal.coolant = COOLANT_MIST_ENABLE; break;
-             #endif
-              case 8: gc_block.modal.coolant = COOLANT_FLOOD_ENABLE; break;
-              case 9: gc_block.modal.coolant = COOLANT_DISABLE; break;
-            }
-            break;
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
         }
 
@@ -867,12 +853,6 @@ uint8_t gc_execute_line(char *line)
     spindle_run(gc_state.modal.spindle, gc_state.spindle_speed);
   }
 
-  // [8. Coolant control ]:  
-  if (gc_state.modal.coolant != gc_block.modal.coolant) {
-    gc_state.modal.coolant = gc_block.modal.coolant;
-    coolant_run(gc_state.modal.coolant);
-  }
-  
   // [9. Enable/disable feed rate or spindle overrides ]: NOT SUPPORTED
 
   // [10. Dwell ]:
@@ -1022,7 +1002,6 @@ uint8_t gc_execute_line(char *line)
    group 6 = {M6} (Tool change)
    group 7 = {G40, G41, G42} cutter radius compensation
    group 8 = {G43} tool length offset (But G43.1/G94 IS SUPPORTED)
-   group 8 = {*M7} enable mist coolant
    group 9 = {M48, M49} enable/disable feed and speed override switches
    group 10 = {G98, G99} return mode canned cycles
    group 13 = {G61, G61.1, G64} path control mode

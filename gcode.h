@@ -41,7 +41,6 @@
 
 #define MODAL_GROUP_M4 8  // [M0,M1,M2,M30] Stopping
 #define MODAL_GROUP_M7 9  // [M3,M4,M5] Spindle turning
-#define MODAL_GROUP_M8 10 // [M7,M8,M9] Coolant control
 
 #define OTHER_INPUT_F 11
 #define OTHER_INPUT_S 12
@@ -98,12 +97,6 @@
 #define SPINDLE_ENABLE_CW 1 // M3
 #define SPINDLE_ENABLE_CCW 2 // M4
 
-
-// Modal Group M8: Coolant control
-#define COOLANT_DISABLE 0 // M9 (Default: Must be zero)
-#define COOLANT_MIST_ENABLE 1 // M7
-#define COOLANT_FLOOD_ENABLE 2 // M8
-
 // Modal Group G8: Tool length offset
 #define TOOL_LENGTH_OFFSET_CANCEL 0 // G49 (Default: Must be zero)
 #define TOOL_LENGTH_OFFSET_ENABLE_DYNAMIC 1 // G43.1
@@ -139,7 +132,6 @@ typedef struct {
   uint8_t tool_length;   // {G43.1,G49}
   uint8_t coord_select;  // {G54,G55,G56,G57,G58,G59}
   uint8_t program_flow;  // {M0,M1,M2,M30}
-  uint8_t coolant;       // {M7,M8,M9}
   uint8_t spindle;       // {M3,M4,M5}
 } gc_modal_t;  
 

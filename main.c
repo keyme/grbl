@@ -27,7 +27,6 @@
 #include "planner.h"
 #include "stepper.h"
 #include "spindle_control.h"
-#include "coolant_control.h"
 #include "motion_control.h"
 #include "limits.h"
 #include "probe.h"
@@ -97,7 +96,6 @@ int main(void)
     gc_init(); // Set g-code parser to default state
     linenumber_init();  //reset line numbering buffer
     spindle_init();
-    coolant_init();
     limits_init();
     probe_init();
     magazine_init();

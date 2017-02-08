@@ -31,7 +31,6 @@
 #include "print.h"
 #include "settings.h"
 #include "gcode.h"
-#include "coolant_control.h"
 #include "planner.h"
 #include "spindle_control.h"
 #include "stepper.h"
@@ -346,14 +345,6 @@ void report_gcode_modes()
     case SPINDLE_ENABLE_CW : printPgmString(PSTR(" M3")); break;
     case SPINDLE_ENABLE_CCW : printPgmString(PSTR(" M4")); break;
     case SPINDLE_DISABLE : printPgmString(PSTR(" M5")); break;
-  }
-
-  switch (gc_state.modal.coolant) {
-    case COOLANT_DISABLE : printPgmString(PSTR(" M9")); break;
-    case COOLANT_FLOOD_ENABLE : printPgmString(PSTR(" M8")); break;
-    #ifdef ENABLE_M7
-      case COOLANT_MIST_ENABLE : printPgmString(PSTR(" M7")); break;
-    #endif
   }
 
   printPgmString(PSTR(" T"));
