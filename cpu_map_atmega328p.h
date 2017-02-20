@@ -76,18 +76,6 @@
 #define SPINDLE_DIRECTION_PORT  PORTB
 #define SPINDLE_DIRECTION_BIT   5  // Uno Digital Pin 13 (NOTE: D13 can't be pulled-high input due to LED.)
 
-// Define flood and mist coolant enable output pins.
-// NOTE: Uno analog pins 4 and 5 are reserved for an i2c interface, and may be installed at
-// a later date if flash and memory space allows.
-#define COOLANT_FLOOD_DDR   DDRC
-#define COOLANT_FLOOD_PORT  PORTC
-#define COOLANT_FLOOD_BIT   3  // Uno Analog Pin 3
-#ifdef ENABLE_M7 // Mist coolant disabled by default. See config.h to enable/disable.
-  #define COOLANT_MIST_DDR   DDRC
-  #define COOLANT_MIST_PORT  PORTC
-  #define COOLANT_MIST_BIT   4 // Uno Analog Pin 4
-#endif  
-
 // Define user-control pinouts (cycle start, reset, feed hold) input pins.
 // NOTE: All pinouts pins must be on the same port and not on a port with other input pins (limits).
 #define PINOUT_DDR       DDRC

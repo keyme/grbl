@@ -28,7 +28,6 @@
 #include "stepper.h"
 #include "motion_control.h"
 #include "spindle_control.h"
-#include "coolant_control.h"
 #include "limits.h"
 #include "probe.h"
 #include "report.h"
@@ -284,9 +283,8 @@ void mc_reset()
   if (bit_isfalse(SYS_EXEC, EXEC_RESET)) {
     SYS_EXEC |= EXEC_RESET;
 
-    // Kill spindle and coolant.   
+    // Kill spindle
     spindle_stop();
-    coolant_stop();
 
     // Kill steppers only if in any motion state, i.e. cycle, feed hold,
     // homing, force servoing, probing or jogging.

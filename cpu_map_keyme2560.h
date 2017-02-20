@@ -103,18 +103,6 @@
   #define SPINDLE_DIRECTION_PORT  PORTE
   #define SPINDLE_DIRECTION_BIT   3 // Atmega2560 pin X / Arduino Digital Pin 5
 
-  // Define flood and mist coolant enable output pins.
-  // NOTE: Uno analog pins 4 and 5 are reserved for an i2c interface, and may be installed at
-  // a later date if flash and memory space allows.
-  #define COOLANT_FLOOD_DDR   DDRH
-  #define COOLANT_FLOOD_PORT  PORTH
-  #define COOLANT_FLOOD_BIT   5 // Atmega2560 pin X / Arduino Digital Pin 8
-  #ifdef ENABLE_M7 // Mist coolant disabled by default. See config.h to enable/disable.
-    #define COOLANT_MIST_DDR   DDRH
-    #define COOLANT_MIST_PORT  PORTH
-    #define COOLANT_MIST_BIT   6 // Atmega2560 pin X / Arduino Digital Pin 9
-  #endif
-
 #endif
 
 // Define user-control pinouts (cycle start, reset, feed hold) input pins.
