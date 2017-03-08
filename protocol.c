@@ -42,10 +42,14 @@ static uint8_t next_report=REQUEST_STATUS_REPORT;
 // Directs and executes one line of formatted input from protocol_process. While mostly
 // incoming streaming g-code blocks, this also directs and executes Grbl internal commands,
 // such as settings, initiating the homing cycle, and toggling switch states.
-static void protocol_execute_line(char *line)
+static uint8_t protocol_execute_line(char *line)
 {
   protocol_execute_runtime(); // Runtime command check point.
-  if (sys.abort) { return; } // Bail to calling function upon system abort
+
+  // Bail to calling function upon system abort
+  if (sys.abort) {
+    return STATUS_ABORT;
+  }
 
   uint8_t status = STATUS_OK;
 
@@ -67,9 +71,10 @@ static void protocol_execute_line(char *line)
   }
 
   /* If there was an error, report it */
-  if (status) {
+  if (status && status != STATUS_IDLE_WAIT) {
     report_status_message(status);
   }
+  return status;
 }
 
 
@@ -111,7 +116,14 @@ void protocol_main_loop()
     while(progman_read(&c)) {
       if ((c == '\n') || (c == '\r')) { // End of line reached
         line[char_counter] = 0; // Set string termination character.
-        protocol_execute_line(line); // Line is complete. Execute it!
+
+        // Some commands need to be executed synchronously (i.e.
+        // homing).  Spinning on STATUS_IDLE_WAIT allows us to finish
+        // flushing the current moves before moving on to commands
+        // that depend on being idle
+        while(protocol_execute_line(line) == STATUS_IDLE_WAIT) {
+          protocol_execute_runtime();
+        }
         char_counter = 0;
       } else {
         if (char_counter >= LINE_BUFFER_SIZE-1) {
