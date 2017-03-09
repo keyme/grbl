@@ -22,7 +22,6 @@ typedef struct {
   uint8_t pause;  // Pause the reading of ADC values periodically with a callback
   uint16_t adc_samples[VOLTAGE_SENSOR_COUNT];  // Filtered ADC readings
   uint16_t callback_period;  // Period between ADC readings TODO: Add command to change this over serial  
-  uint8_t force_offset;
 } signals_t;
 signals_t signals;
 

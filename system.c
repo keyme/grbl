@@ -353,15 +353,7 @@ uint8_t system_execute_line(char *line)
           break;
         case 'F': // Perform Force servo process. By default it is defined for Gripper-Axis(Z) only.
           char_counter++; 
-          // The $FS command, followed by a value,
-          // set limits.force_offset to the value.
-          if (line[char_counter] == 'S') {
-            char_counter++;         
-            if (!read_float(line, &char_counter, &value)){
-              return(STATUS_BAD_NUMBER_FORMAT);
-            }
-            signals.force_offset = (uint16_t)value;
-          } else if (line[char_counter] == 0) {
+          if (line[char_counter] == 0) {
              return(STATUS_INVALID_STATEMENT);
           } else {
               if (!read_float(line, &char_counter, &value)){
