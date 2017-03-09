@@ -1,6 +1,6 @@
 /*
   Not part of Grbl. KeyMe specific.
-  
+
   Signal is one layer of abstraction above adc.h and adc.c.
 
   ADC values are read in specific time intervals, filtered and
@@ -12,17 +12,16 @@
 #include "systick.h"
 
 #define N_FILTER 3
-#define SIGNALS_DEFAULT_INTERVAL 100 
+#define SIGNALS_DEFAULT_INTERVAL 100
 #define X_BUF(i) adc_samples_x[FORCE_VALUE_INDEX][i]
 
 // Unfiltered ADC readings
-int16_t adc_samples_x[VOLTAGE_SENSOR_COUNT][N_FILTER]; 
+int16_t adc_samples_x[VOLTAGE_SENSOR_COUNT][N_FILTER];
 
 void signals_init()
 {
   signals.pause = 0;
   signals.callback_period = SIGNALS_DEFAULT_INTERVAL;
-  signals.force_offset = 0;
 }
 
 // Update motors ADC readings
@@ -46,16 +45,11 @@ void signals_update_force()
   // ensure that the value being used doesn't change during 
   // during the function call.
   uint16_t raw_value = raw_adc_readings[FORCE];
-  
+
   // Index in signal buffer
   static const uint8_t n = N_FILTER - 1;
 
-  // Make sure that the offset doesn't make the sample negative.
-  if (signals.force_offset > raw_value) {
-    X_BUF(n) = 0;
-  } else {
-    X_BUF(n) = raw_value - signals.force_offset;
-  }
+  X_BUF(n) = raw_value;
 
   /*
     Filter:
@@ -67,7 +61,7 @@ void signals_update_force()
 
   // Advance all values in the unfiltered array
   memmove(&X_BUF(0), &X_BUF(1) ,sizeof(uint16_t) * N_FILTER - 1);
-   
+
 }
 
 void signals_callback()
