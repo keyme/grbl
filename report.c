@@ -490,9 +490,9 @@ uint8_t report_realtime_status()
 
 void report_limit_pins()
 {
-  uint8_t limit_state = LIMIT_PIN & LIMIT_MASK;
+  uint8_t limit_state = sys.limit_state;
   if (bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) {
-         limit_state^=LIMIT_MASK;
+         limit_state ^= LIMIT_MASK;
   }
   printPgmString(PSTR("/"));
   printInteger((ESTOP_PIN>>ESTOP_BIT)&1);

@@ -91,12 +91,15 @@
 typedef struct {
   uint8_t abort;                 // System abort flag. Forces exit back to main loop for reset.
   uint16_t state;                 // Tracks the current state of Grbl.
+  uint16_t old_state;            // Keep track of state changes
   uint8_t flags;                 // see SYSFLAG_xxx above
   uint8_t alarm;                 // see ALARM_xxx above. which alarm(s) are active
   int32_t position[N_AXIS];      // Real-time machine (aka home) position vector in steps.
                                  // NOTE: This may need to be a volatile variable, if problems arise.
   int32_t probe_position[N_AXIS]; // Last probe position in machine coordinates and steps.
   uint8_t lock_mask;             // Mask which determines the state of axis 'locking' (aka braking)
+  uint8_t limit_state;           // State of XYZC limit pins
+  uint8_t old_limit_state;       // Keep track of limit state changes
 } system_t;
 extern system_t sys;
 

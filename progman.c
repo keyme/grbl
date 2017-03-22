@@ -64,13 +64,13 @@ bool progman_handle_runtime_cmd(char data)
     /* Call motion control reset routine. */
     mc_reset();
     break;
-  case '\n':			/* Intentional fall through */
+  case '\n':    /* Intentional fall through */
   case '\r':
     /* If we got a bare newline character out of context, it's likely
        due to the fact that our previous character was consumed as
        a runtime command, so we should just swallow it */
     if ((progman.line_pos < 1) &&
-	(E_PROGMAN_CONSUMING == progman.state)) {
+        (E_PROGMAN_CONSUMING == progman.state)) {
       report_status_message(STATUS_OK);
       break;
     }
@@ -138,7 +138,7 @@ bool progman_validate_gcode_line(void)
       continue;
     default:
       if (progman.line_assy[i] < ' ' || progman.line_assy[i] > '~') {
-	return false;
+        return false;
       }
     }
   }

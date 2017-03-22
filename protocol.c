@@ -36,9 +36,6 @@
 
 static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
-static uint32_t report_clock=0; //time until next automatic report
-static uint8_t next_report=REQUEST_STATUS_REPORT;
-
 // Directs and executes one line of formatted input from protocol_process. While mostly
 // incoming streaming g-code blocks, this also directs and executes Grbl internal commands,
 // such as settings, initiating the homing cycle, and toggling switch states.
@@ -89,6 +86,11 @@ void protocol_main_loop()
 
   // Print welcome message
   report_init_message();
+
+  /* Request Grbl status upon startup */
+  SYS_EXEC |= EXEC_RUNTIME_REPORT;
+  sysflags.report_rqsts |= REQUEST_STATUS_REPORT;
+
 
   // Check for and report alarm state after a reset, error, or an initial power up.
   if (sys.state == STATE_ALARM) {
@@ -164,20 +166,29 @@ void protocol_main_loop()
 void protocol_execute_runtime()
 {
   uint8_t rt_exec = SYS_EXEC; // Copy to avoid calling volatile multiple times
-  uint32_t clock = masterclock;
 
   // Give the program manager some time to manage the serial traffic
   progman_execute();
 
   // Service SysTick Callbacks
   systick_service_callbacks();
-  
-  if (clock >= (report_clock +  STATUS_REPORT_RATE_MS) || clock < report_clock) {
-    rt_exec|= EXEC_RUNTIME_REPORT;
-    sysflags.report_rqsts|=next_report;
-    next_report^=(REQUEST_STATUS_REPORT|REQUEST_LIMIT_REPORT); //toggle between these two
-    report_clock = clock;
+
+  /* Report state change */
+  if (sys.state != sys.old_state) {
+    sys.old_state = sys.state;
+    SYS_EXEC |= EXEC_RUNTIME_REPORT;
+    sysflags.report_rqsts |= REQUEST_STATUS_REPORT;
   }
+
+  /* Update limit state and report if changed */
+  sys.limit_state = LIMIT_PIN & LIMIT_MASK;  /* Note LIMIT_PIN is not a single
+                                                pin, but  short for PORT IN */
+  if (sys.limit_state != sys.old_limit_state) {
+    sys.old_limit_state = sys.limit_state;
+    SYS_EXEC |= EXEC_RUNTIME_REPORT;
+    sysflags.report_rqsts |= REQUEST_LIMIT_REPORT;
+  }
+
   st_check_disable();
 
 
