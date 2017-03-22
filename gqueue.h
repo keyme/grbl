@@ -9,18 +9,17 @@
 struct generic_queue {
   volatile void *head;
   volatile void *tail;
-  int32_t item_size;
-  int32_t len;
-  int32_t max_capacity;
+  volatile void *end;
+  unsigned int item_size;
+  unsigned int max_capacity;
   volatile uint8_t memory[0];
 };
 
 #define DECLARE_QUEUE(name, element_type, max_size)	\
   static struct {					\
     struct generic_queue gq;				\
-    element_type __elements[max_size];			\
+    element_type _elements[max_size + 1];              \
   } name;
-
 
 static inline void queue_init(volatile void *q, int elt_size, int capacity)
 {
@@ -30,24 +29,37 @@ static inline void queue_init(volatile void *q, int elt_size, int capacity)
   memset((void*)q, 0x00, q_size);
   gq->item_size = elt_size;
   gq->max_capacity = capacity;
+  gq->head = gq->memory;
+  gq->tail = gq->memory;
+  gq->end  = gq->memory + (gq->max_capacity) * gq->item_size;
 }
 
 static inline bool queue_is_empty(volatile void *q)
 {
   volatile struct generic_queue *gq = q;
 
-  return (gq->len == 0);
+  return (gq->head == gq->tail);
 }
-static inline int queue_get_len(volatile void *q)
+
+static inline unsigned int queue_get_len(volatile void *q)
 {
   volatile struct generic_queue *gq = q;
-  return gq->len;
+
+  if (gq->tail == gq->head) {
+    return 0;
+  } else if (gq->tail > gq->head) {
+    return (gq->tail - gq->head) / gq->item_size;
+  } else {
+    return gq->max_capacity - ((gq->head - gq->tail) / gq->item_size) + 1;
+  }
 }
+
 static inline bool queue_is_full(volatile void *q)
 {
   volatile struct generic_queue *gq = q;
-  return (gq->len >= gq->max_capacity);
+  return (queue_get_len(q) >= gq->max_capacity);
 }
+
 void queue_enqueue(volatile void *q, const void *elt) __attribute__((nonnull));
 void queue_dequeue(volatile void *q, void *elt) __attribute__((nonnull));
 
