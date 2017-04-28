@@ -61,11 +61,11 @@ static const uint8_t scs_pin_lookup[4] = {
 
 static int32_t max_servo_steps;
 
-// Initialization values for spi stepper drivers
-// Format: MSB, LSB
-static const uint8_t stepper_init_registers[4][18] = {
-  {
-    //XTABLE
+/*
+  Initialization values for spi stepper drivers
+  Format: MSB, LSB
+*/
+uint8_t stepper_init_base[] = {
     0x0C, 0x11, // CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1
     0x11, 0xFF, // TORQUE, SMPLTH=001, TORQUE=0xFF
     0x20, 0x30, // OFF,    PWMMODE=0, TOFF=0x30
@@ -73,43 +73,10 @@ static const uint8_t stepper_init_registers[4][18] = {
     0x41, 0x10, // DECAY,  DECMOD=001, TDECAY=0x10
     0x50, 0x40, // STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
     0x6A, 0x59, // DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01
-    0x70, 0x00  // STATUS, init all status flags to 0 
-  },
-  {
-    //YTABLE
-    0x0C, 0x11, // CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1  
-    0x11, 0xFF, // TORQUE, SMPLTH=001, TORQUE=0xFF
-    0x20, 0x30, // OFF,    PWMMODE=0, TOFF=0x30
-    0x30, 0x80, // BLANK,  ABT=0, TBLANK=0x80
-    0x41, 0x10, // DECAY,  DECMOD=001, TDECAY=0x10
-    0x50, 0x40, // STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
-    0x6A, 0x59, // DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01
-    0x70, 0x00  // STATUS, init all status flags to 0 
-  },
-  {
-    //GRIPPER
-    0x0C, 0x11, //  CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1  
-    0x11, 0xFF, //  TORQUE, SMPLTH=001, TORQUE=0xFF
-    0x20, 0x30, //  OFF,    PWMMODE=0, TOFF=0x30
-    0x30, 0x80, //  BLANK,  ABT=0, TBLANK=0x80
-    0x41, 0x10, //  DECAY,  DECMOD=001, TDECAY=0x10
-    0x50, 0x40, //  STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
-    0x6A, 0x59, //  DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01   
-    0x70, 0x00  //  STATUS, init all status flags to 0 
-
-  },
-  {
-    //CAROUSEL
-    0x0C, 0x11, //  CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1  
-    0x11, 0xFF, //  TORQUE, SMPLTH=001, TORQUE=0xFF
-    0x20, 0x30, //  OFF,    PWMMODE=0, TOFF=0x30
-    0x30, 0x80, //  BLANK,  ABT=0, TBLANK=0x80
-    0x41, 0x10, //  DECAY,  DECMOD=001, TDECAY=0x10
-    0x50, 0x40, //  STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
-    0x6A, 0x59, //  DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01   
-    0x70, 0x00  //  STATUS, init all status flags to 0 
-  }
+    0x70, 0x00  // STATUS, init all status flags to 0
 };
+
+uint8_t * stepper_init_registers[] = {stepper_init_base, stepper_init_base, stepper_init_base};
 
 // Define Adaptive Multi-Axis Step-Smoothing(AMASS) levels and cutoff frequencies. The highest level
 // frequency bin starts at 0Hz and ends at its cutoff frequency. The next lower level frequency bin
@@ -380,7 +347,7 @@ void st_limit_check()
   uint8_t must_stop = (( (LIMIT_PIN) ^ limits.expected) & limits.active);
   if (must_stop) {
     st.step_outbits &= ~(must_stop >> LIMIT_BIT_SHIFT);
-    // If an axis is done homing, clear the corresponding bit in limits.ishoming     
+    // If an axis is done homing, clear the corresponding bit in limits.ishoming
     limits.ishoming &= ~(must_stop >> LIMIT_BIT_SHIFT);
 
     if (!limits.ishoming)
@@ -400,13 +367,13 @@ void st_limit_check()
 }
 
 
-// Called from ISR(TIMER4_COMPA_vect) - needs to be very efficient 
+// Called from ISR(TIMER4_COMPA_vect) - needs to be very efficient
 // This checks if the desired force value is met (typically before bumping a key).
 // Once the desired force is reached, the gripper motor is stopped.
 void st_force_check()
 {
-  // Sample and filter 
-  signals_update_force();  
+  // Sample and filter
+  signals_update_force();
 
   /* Check if desired force has been reached and
      Stop when:
@@ -418,7 +385,7 @@ void st_force_check()
        and the force is less than or equal to
        the desired force
   */
-  
+
   const uint8_t positive_direction = bit_istrue(st.dir_outbits, (1 << Z_DIRECTION_BIT));
   const uint8_t positive_stop = (positive_direction && (FORCE_VAL >= limits.bump_grip_force));
   const uint8_t negative_stop = (!positive_direction && (FORCE_VAL <= limits.bump_grip_force));
@@ -430,7 +397,7 @@ void st_force_check()
 
   if (positive_stop || negative_stop || max_reached) {
     limits.isservoing = 0;
-    request_report(REQUEST_STATUS_REPORT | REQUEST_LIMIT_REPORT, LINENUMBER_EMPTY_BLOCK);    
+    request_report(REQUEST_STATUS_REPORT | REQUEST_LIMIT_REPORT, LINENUMBER_EMPTY_BLOCK);
   }
 
 }
@@ -607,7 +574,7 @@ ISR(TIMER4_COMPA_vect)
 
   st_limit_check(); //Check for limits, including homing limits
 
-  if (limits.isservoing) 
+  if (limits.isservoing)
     st_force_check();
 
   // Check if probe is reached, if probing
@@ -691,7 +658,7 @@ void spi_read_driver_register(uint8_t addr, uint8_t * dataout , steppers_t stepp
   bit_true(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select high
   spi_transact_array(tx_data, dataout, 2);
   bit_false(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select low
- 
+
 }
 
 void spi_driver_setup(steppers_t stepper)
@@ -710,7 +677,7 @@ void spi_driver_setup(steppers_t stepper)
 }
 
 
-void keyme_init() 
+void keyme_init()
 {
   // PORTG0 for drive enable
   ESTOP_DDR  |= (1<<RUN_ENABLE_BIT);    //set enable as outupt
@@ -729,7 +696,7 @@ void keyme_init()
   #else
     MS_DDR = MS_MASK; //all output
     MS_PORT = settings.microsteps & MS_MASK;
-  #endif 
+  #endif
 
   // Phase Current Decay
   PFD_DDR = PFD_MASK; //all output
