@@ -31,6 +31,7 @@
 #include "magazine.h"
 #include "signals.h"
 #include "spi.h"
+#include "nuts_bolts.h"
 
 // Some useful constants.
 #define DT_SEGMENT (1.0/(ACCELERATION_TICKS_PER_SECOND*60.0)) // min/segment
@@ -61,11 +62,11 @@ static const uint8_t scs_pin_lookup[4] = {
 
 static int32_t max_servo_steps;
 
-// Initialization values for spi stepper drivers
-// Format: MSB, LSB
-static const uint8_t stepper_init_registers[4][18] = {
-  {
-    //XTABLE
+/*
+  Initialization values for spi stepper drivers
+  Format: MSB, LSB
+*/
+uint8_t stepper_init_base[] = {
     0x0C, 0x11, // CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1
     0x11, 0xFF, // TORQUE, SMPLTH=001, TORQUE=0xFF
     0x20, 0x30, // OFF,    PWMMODE=0, TOFF=0x30
@@ -73,42 +74,25 @@ static const uint8_t stepper_init_registers[4][18] = {
     0x41, 0x10, // DECAY,  DECMOD=001, TDECAY=0x10
     0x50, 0x40, // STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
     0x6A, 0x59, // DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01
-    0x70, 0x00  // STATUS, init all status flags to 0 
-  },
-  {
-    //YTABLE
-    0x0C, 0x11, // CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1  
-    0x11, 0xFF, // TORQUE, SMPLTH=001, TORQUE=0xFF
-    0x20, 0x30, // OFF,    PWMMODE=0, TOFF=0x30
-    0x30, 0x80, // BLANK,  ABT=0, TBLANK=0x80
-    0x41, 0x10, // DECAY,  DECMOD=001, TDECAY=0x10
-    0x50, 0x40, // STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
-    0x6A, 0x59, // DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01
-    0x70, 0x00  // STATUS, init all status flags to 0 
-  },
-  {
-    //GRIPPER
-    0x0C, 0x11, //  CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1  
-    0x11, 0xFF, //  TORQUE, SMPLTH=001, TORQUE=0xFF
-    0x20, 0x30, //  OFF,    PWMMODE=0, TOFF=0x30
-    0x30, 0x80, //  BLANK,  ABT=0, TBLANK=0x80
-    0x41, 0x10, //  DECAY,  DECMOD=001, TDECAY=0x10
-    0x50, 0x40, //  STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
-    0x6A, 0x59, //  DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01   
-    0x70, 0x00  //  STATUS, init all status flags to 0 
+    0x70, 0x00  // STATUS, init all status flags to 0
+};
 
-  },
-  {
-    //CAROUSEL
-    0x0C, 0x11, //  CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1  
-    0x11, 0xFF, //  TORQUE, SMPLTH=001, TORQUE=0xFF
-    0x20, 0x30, //  OFF,    PWMMODE=0, TOFF=0x30
-    0x30, 0x80, //  BLANK,  ABT=0, TBLANK=0x80
-    0x41, 0x10, //  DECAY,  DECMOD=001, TDECAY=0x10
-    0x50, 0x40, //  STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
-    0x6A, 0x59, //  DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01   
-    0x70, 0x00  //  STATUS, init all status flags to 0 
-  }
+struct spi_stepper_base_diff {
+  uint8_t len_diffs;
+  uint8_t * diffs;
+};
+
+static uint8_t xtable_diffs[] = {0};
+static uint8_t ytable_diffs[] = {0};
+static uint8_t gripper_diffs[] = {0};
+static uint8_t carousel_diffs[] = {0};
+
+static const struct spi_stepper_base_diff spi_stepper_diff_list[4] =
+{
+  {.len_diffs = 0, .diffs = xtable_diffs},
+  {.len_diffs = 0, .diffs = ytable_diffs},
+  {.len_diffs = 0, .diffs = gripper_diffs},
+  {.len_diffs = 0, .diffs = carousel_diffs}
 };
 
 // Define Adaptive Multi-Axis Step-Smoothing(AMASS) levels and cutoff frequencies. The highest level
@@ -696,16 +680,24 @@ void spi_read_driver_register(uint8_t addr, uint8_t * dataout , steppers_t stepp
 
 void spi_driver_setup(steppers_t stepper)
 {
-  uint8_t idx = 0;
-  for(idx = 0; idx <= 14; idx += 2) {
-    uint8_t tx_buf[2];
-    tx_buf[0] = stepper_init_registers[(uint8_t)stepper][idx];
-    tx_buf[1] = stepper_init_registers[(uint8_t)stepper][idx + 1];
+  /* load base */
+  for(uint8_t idx = 0; idx <= 14; idx += 2) {
+      uint8_t tx_buf[2] = {stepper_init_base[idx], stepper_init_base[idx + 1]};
+
+      bit_true(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select high
+      spi_write(tx_buf, 2);
+      bit_false(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select low
+
+  }
+
+  /* load diff */
+  for (uint8_t idx = 0; idx < spi_stepper_diff_list[stepper].len_diffs; idx += 2) {
+    uint8_t tx_buf[2] = {spi_stepper_diff_list[stepper].diffs[idx],
+                         spi_stepper_diff_list[stepper].diffs[idx+1]};
 
     bit_true(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select high
     spi_write(tx_buf, 2);
     bit_false(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select low
-
   }
 }
 
