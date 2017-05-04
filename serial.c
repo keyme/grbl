@@ -117,11 +117,21 @@ ISR(SERIAL_RX)
 {
   uint8_t data = UDR0;
 
-  if (!queue_is_full(&rx_buf)) {
-    queue_enqueue(&rx_buf, &data);
+  // Pick off runtime command characters directly from the serial stream. These characters are
+  // not passed into the buffer, but these set system state flag bits for runtime execution.
+  switch (data) {
+  case CMD_COUNTER_REPORT: request_report(REQUEST_COUNTER_REPORT,0); break;
+  case CMD_VOLTAGE_REPORT: request_report(REQUEST_VOLTAGE_REPORT,0); break;
+  case CMD_STATUS_REPORT: request_report(REQUEST_STATUS_REPORT,0); break;
+  case CMD_LIMIT_REPORT: request_report(REQUEST_LIMIT_REPORT,0); break;
+  case CMD_CYCLE_START: SYS_EXEC |= EXEC_CYCLE_START; break; // Set as true
+  case CMD_FEED_HOLD:  SYS_EXEC |= EXEC_FEED_HOLD; break; // Set as true
+  case CMD_RESET:     mc_reset(); break; // Call motion control reset routine.
+  default: // Write character to buffer
+    if (!queue_is_full(&rx_buf)) {
+      queue_enqueue(&rx_buf, &data);
+    }
   }
-
-  //TODO: else alarm on overflow?
 }
 
 void serial_reset_read_buffer()

@@ -37,7 +37,7 @@ PROGRAMMER ?= -c wiring -P $(PORT) -v -v
 OBJECTS    = main.o motion_control.o gcode.o spindle_control.o serial.o \
              protocol.o stepper.o eeprom.o settings.o planner.o magazine.o \
              nuts_bolts.o limits.o print.o probe.o report.o system.o \
-             counters.o gqueue.o progman.o adc.o spi.o signals.o systick.o \
+             counters.o gqueue.o adc.o spi.o signals.o systick.o \
              motor_driver.o
 
 # FUSES      = -U hfuse:w:0xd9:m -U lfuse:w:0x24:m
