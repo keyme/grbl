@@ -191,6 +191,15 @@ void protocol_execute_runtime()
 
   st_check_disable();
 
+  /* TODO: Figure out what exactly is causing this off-by-one type
+   * error in the reporting system */
+  /* If we're idle and there are line numbers that have not been
+   * reported, flush out the buffer to ensure our cutting software
+   * fires all of it's associated callbacks */
+  if (sys.state == STATE_IDLE && linenumber_peek()) {
+    request_eol_report();
+  }
+
 
   if (rt_exec) { // Enter only if any bit flag is true
 
