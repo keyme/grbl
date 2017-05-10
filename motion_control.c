@@ -192,7 +192,7 @@ void mc_arc(float *position, float *target, float *offset, float radius, float f
 // Execute dwell in seconds.
 void mc_dwell(float seconds) 
 {
-  /* TODO: Report a dwell status? -JC */
+  report_status_message(STATUS_OK); //report that we are dwelling
   if (sys.state == STATE_CHECK_MODE) { return; }
    
   uint16_t i = floor(1000/DWELL_TIME_STEP*seconds);

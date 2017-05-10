@@ -33,7 +33,6 @@
 #include "magazine.h"
 #include "report.h"
 #include "counters.h"
-#include "progman.h"
 #include "adc.h"
 #include "spi.h"
 #include "systick.h"
@@ -101,7 +100,6 @@ int main(void)
     magazine_init();
     plan_reset(); // Clear block buffer and planner variables
     st_reset(); // Clear stepper subsystem variables.
-    progman_init();
     signals_init();
     systick_init();  // Init systick and systick callbacks
 

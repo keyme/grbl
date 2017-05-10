@@ -28,7 +28,6 @@
 #include "stepper.h"
 #include "motion_control.h"
 #include "report.h"
-#include "progman.h"
 #include "systick.h"
 #include "magazine.h"
 
@@ -68,7 +67,7 @@ static uint8_t protocol_execute_line(char *line)
   }
 
   /* If there was an error, report it */
-  if (status && status != STATUS_IDLE_WAIT) {
+  if (status != STATUS_IDLE_WAIT) {
     report_status_message(status);
   }
   return status;
@@ -104,37 +103,50 @@ void protocol_main_loop()
   // ---------------------------------------------------------------------------------
   // Primary loop! Upon a system abort, this exits back to main() to reset the system.
   // ---------------------------------------------------------------------------------
-
+  bool iscomment = false;
   uint8_t char_counter = 0;
   uint8_t c;
   for (;;) {
     // Process one line of incoming Gcode data, as the data becomes available. Performs an
     // initial filtering by removing spaces and comments and capitalizing all letters.
 
-    // NOTE: The Program Manager handles the filtering of comments,
-    // spaces, and block skips. All data *should* come through as
-    // complete newline delimited blocks
-
-    while(progman_read(&c)) {
+    while((c = serial_read()) != SERIAL_NO_DATA) {
       if ((c == '\n') || (c == '\r')) { // End of line reached
         line[char_counter] = 0; // Set string termination character.
 
-        // Some commands need to be executed synchronously (i.e.
-        // homing).  Spinning on STATUS_IDLE_WAIT allows us to finish
-        // flushing the current moves before moving on to commands
-        // that depend on being idle
-        while(protocol_execute_line(line) == STATUS_IDLE_WAIT) {
-          protocol_execute_runtime();
-        }
+        // Line is complete. Execute it!
+        while (protocol_execute_line(line) == STATUS_IDLE_WAIT);
+        iscomment = false;
         char_counter = 0;
       } else {
-        if (char_counter >= LINE_BUFFER_SIZE-1) {
-        // Detect line buffer overflow. Report error and reset line buffer.
-        report_status_message(STATUS_OVERFLOW);
-            char_counter = 0;
+        if (iscomment) {
+          // Throw away all comment characters
+          if (c == ')') {
+            // End of comment. Resume line.
+            iscomment = false;
+          }
         } else {
-        /* Put the capitalized letter in the buffer */
-        line[char_counter++] = (c >= 'a' && c <= 'z') ? (c - 'a' + 'A') : c;
+          if (c <= ' ') {
+            // Throw away whitepace and control characters
+          } else if (c == '/') {
+            // Block delete NOT SUPPORTED. Ignore character.
+            // NOTE: If supported, would simply need to check the system if block delete is enabled.
+          } else if (c == '(') {
+            // Enable comments flag and ignore all characters until ')' or EOL.
+            // NOTE: This doesn't follow the NIST definition exactly, but is good enough for now.
+            // In the future, we could simply remove the items within the comments, but retain the
+            // comment control characters, so that the g-code parser can error-check it.
+            iscomment = true;
+
+          } else if (char_counter >= LINE_BUFFER_SIZE-1) {
+            // Detect line buffer overflow. Report error and reset line buffer.
+            report_status_message(STATUS_OVERFLOW);
+            iscomment = false;
+            char_counter = 0;
+          } else {
+            /* Put the capitalized letter in the buffer */
+            line[char_counter++] = (c >= 'a' && c <= 'z') ? (c - 'a' + 'A') : c;
+          }
         }
       }
     }
@@ -166,9 +178,6 @@ void protocol_main_loop()
 void protocol_execute_runtime()
 {
   uint8_t rt_exec = SYS_EXEC; // Copy to avoid calling volatile multiple times
-
-  // Give the program manager some time to manage the serial traffic
-  progman_execute();
 
   // Service SysTick Callbacks
   systick_service_callbacks();
@@ -216,16 +225,14 @@ void protocol_execute_runtime()
         report_feedback_message(MESSAGE_CRITICAL_EVENT);
         bit_false(SYS_EXEC,EXEC_RESET); // Disable any existing reset
         do {
-          // Block EVERYTHING until user issues reset or power cycles
-          // (requires the program manager to handle from the incoming
-          // serial stream). Hard limits typically occur while
-          // unattended or not paying attention. Gives the user time
-          // to do what is needed before resetting, like killing the
-          // incoming stream. The same could be said about soft
-          // limits. While the position is not lost, the incoming
-          // stream could be still engaged and cause a serious crash
-          // if it continues afterwards.
-          progman_execute();
+          // Block EVERYTHING until user issues reset or power cycles.
+          // Hard limits typically occur while unattended or not
+          // paying attention. Gives the user time to do what is
+          // needed before resetting, like killing the incoming
+          // stream. The same could be said about soft limits. While
+          // the position is not lost, the incoming stream could be
+          // still engaged and cause a serious crash if it continues
+          // afterwards.
         } while (bit_isfalse(SYS_EXEC,EXEC_RESET));
       }
       bit_false(SYS_EXEC,(EXEC_ALARM | EXEC_CRIT_EVENT));
@@ -296,7 +303,6 @@ void protocol_execute_runtime()
           sys.flags &= ~SYSFLAG_AUTOSTART; // Reset auto start per settings.
         }
       }
-      bit_false(SYS_EXEC,EXEC_CYCLE_START);
     }
 
     // Reinitializes the cycle plan and stepper system after a feed hold for a resume. Called by
