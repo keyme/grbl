@@ -100,6 +100,7 @@ typedef struct {
   uint8_t lock_mask;             // Mask which determines the state of axis 'locking' (aka braking)
   uint8_t limit_state;           // State of XYZC limit pins
   uint8_t old_limit_state;       // Keep track of limit state changes
+  uint8_t last_estop_state;      // ESTOP tracking
 } system_t;
 extern system_t sys;
 
