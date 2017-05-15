@@ -163,6 +163,31 @@ void protocol_main_loop()
   return; /* Never reached */
 }
 
+static void protocol_check_required_reports()
+{
+  /* Report state changes */
+  if (sys.state != sys.old_state) {
+    sys.old_state = sys.state;
+    SYS_EXEC |= EXEC_RUNTIME_REPORT;
+    sysflags.report_rqsts |= REQUEST_STATUS_REPORT;
+  }
+
+  /* Update limit state and report if changed */
+  sys.limit_state = LIMIT_PIN & LIMIT_MASK;  /* Note LIMIT_PIN is not a single
+                                                pin, but  short for PORT IN */
+  if (sys.limit_state != sys.old_limit_state) {
+    sys.old_limit_state = sys.limit_state;
+    SYS_EXEC |= EXEC_RUNTIME_REPORT;
+    sysflags.report_rqsts |= REQUEST_LIMIT_REPORT;
+  }
+
+  /* Check if the ESTOP status changed */
+  if ((ESTOP_PIN & ESTOP_MASK) != sys.last_estop_state) {
+    sys.last_estop_state = (ESTOP_PIN & ESTOP_MASK);
+    SYS_EXEC |= EXEC_RUNTIME_REPORT;
+    sysflags.report_rqsts |= REQUEST_LIMIT_REPORT;
+  }
+}
 
 // Executes run-time commands, when required. This is called from various check points in the main
 // program, primarily where there may be a while loop waiting for a buffer to clear space or any
@@ -182,21 +207,7 @@ void protocol_execute_runtime()
   // Service SysTick Callbacks
   systick_service_callbacks();
 
-  /* Report state change */
-  if (sys.state != sys.old_state) {
-    sys.old_state = sys.state;
-    SYS_EXEC |= EXEC_RUNTIME_REPORT;
-    sysflags.report_rqsts |= REQUEST_STATUS_REPORT;
-  }
-
-  /* Update limit state and report if changed */
-  sys.limit_state = LIMIT_PIN & LIMIT_MASK;  /* Note LIMIT_PIN is not a single
-                                                pin, but  short for PORT IN */
-  if (sys.limit_state != sys.old_limit_state) {
-    sys.old_limit_state = sys.limit_state;
-    SYS_EXEC |= EXEC_RUNTIME_REPORT;
-    sysflags.report_rqsts |= REQUEST_LIMIT_REPORT;
-  }
+  protocol_check_required_reports();
 
   st_check_disable();
 
