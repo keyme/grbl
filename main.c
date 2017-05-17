@@ -39,6 +39,8 @@
 #include "systick.h"
 #include "signals.h"
 #include "ad5121.h"
+#include "motor_driver.h"
+
 
 // Declare system global variable structure
 system_t sys = {

@@ -41,10 +41,6 @@
 #define RAMP_CRUISE 1
 #define RAMP_DECEL 2
 
-//SPI drivers
-#define SPI_ADDRESS_MASK        0x7
-#define SPI_RW_BIT              7
-
 static int32_t max_servo_steps;
 
 /*
@@ -239,6 +235,10 @@ void st_disable(uint8_t disable, uint8_t mask) {
   if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { disable = !disable; } // Apply pin invert.
   if (disable) { STEPPERS_DISABLE_PORT |= (STEPPERS_DISABLE_MASK&mask); }
   else { STEPPERS_DISABLE_PORT &= ~(STEPPERS_DISABLE_MASK&mask); }
+  /* SPI driver needs one ms after disable signal */
+  #ifdef SPI_STEPPER_DRIVER
+  delay_ms(1);
+  #endif
 }
 
 // Stepper state initialization. Cycle should only start if the st.cycle_start flag is

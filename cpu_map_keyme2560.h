@@ -13,8 +13,9 @@
 #define TX_BUFFER_SIZE          128
 #define BLOCK_BUFFER_SIZE       48
 #define LINE_BUFFER_SIZE        255
+
 /* SPI PORTS */
-#define SPI_DDR                 DDRB 
+#define SPI_DDR                 DDRB
 #define SPI_PORT                PORTB
 #define SPI_MOSI                PB2
 #define SPI_MISO                PB3
@@ -52,16 +53,6 @@
 #define SCS_SRAM_DDR            DDRC
 #define SCS_SRAM_DDR_PIN        DDC3
 
-// Define step pulse output pins. NOTE: All step bit pins must be on the same port.
-#define STEP_DDR      DDRH
-#define STEP_PORT     PORTH
-#define STEP_PIN      PINH
-#define X_STEP_BIT        0 // Atmega2560 pin 12 / Arduino Digital Pin 17
-#define Y_STEP_BIT        1 // Atmega2560 pin 13 / Arduino Digital Pin 16
-#define Z_STEP_BIT        2 // Atmega2560 pin 14 / Arduino Digital Pin xx
-#define C_STEP_BIT        3 // Atmega2560 pin 15 / Arduino Digital Pin 6
-#define STEP_MASK ((1<<X_STEP_BIT)|(1<<Y_STEP_BIT)|(1<<Z_STEP_BIT)|(1<<C_STEP_BIT)) // All step bits
-
 /* Motor driver resets */
 #define MOTOR_RESET_LINE_DRIVER_PIN             PG2
 #define MOTOR_RESET_LINE_DRIVER_DDR_PIN         DDG2
@@ -70,24 +61,36 @@
 #define MOTOR_RESET_DDR                         DDRG
 #define MOTOR_RESET_DDR_PIN                     DDG0
 
+/* Define step pulse output pins. NOTE: All step bit pins must be on the same port. */
+#define STEP_DDR      DDRH
+#define STEP_PORT     PORTH
+#define STEP_PIN      PINH
+#define X_STEP_BIT    PH0
+#define Y_STEP_BIT    PH1
+#define Z_STEP_BIT    PH2
+#define C_STEP_BIT    PH3
+/* All step bits */
+#define STEP_MASK     ((1 << X_STEP_BIT) | (1 << Y_STEP_BIT) | (1 << Z_STEP_BIT) | (1 << C_STEP_BIT))
+
 // Define step direction output pins. NOTE: All direction pins must be on the same port.
 #define DIRECTION_DDR      DDRH
 #define DIRECTION_PORT     PORTH
-#define DIRECTION_PIN      PINH
-#define X_DIRECTION_BIT   4 // Atmega2560 pin 16 / Arduino Digital Pin 7
-#define Y_DIRECTION_BIT   5 // Atmega2560 pin 17 / Arduino Digital Pin 8
-#define Z_DIRECTION_BIT   6 // Atmega2560 pin 18 / Arduino Digital Pin 9
-#define C_DIRECTION_BIT   7 // Atmega2560 pin 27 / Arduino Digital Pin xx
-#define DIRECTION_MASK ((1<<X_DIRECTION_BIT)|(1<<Y_DIRECTION_BIT)|(1<<Z_DIRECTION_BIT)|(1<<C_DIRECTION_BIT)) // All direction bits
+#define X_DIRECTION_BIT    PH4
+#define Y_DIRECTION_BIT    PH5
+#define Z_DIRECTION_BIT    PH6
+#define C_DIRECTION_BIT    PH7
+/* All direction bits */
+#define DIRECTION_MASK    ((1 << X_DIRECTION_BIT) | (1 << Y_DIRECTION_BIT) | (1 << Z_DIRECTION_BIT) | (1 << C_DIRECTION_BIT))
 
-// Define stepper driver enable/disable output pin.
+/* Define stepper driver enable/disable output pin. */
 #define STEPPERS_DISABLE_DDR   DDRJ
 #define STEPPERS_DISABLE_PORT  PORTJ
-#define X_DISABLE_BIT 2  // J2 / Atmega Pin 65
-#define Y_DISABLE_BIT 3  // J3 / Atmega Pin 66
-#define Z_DISABLE_BIT 4  // J4 / Atmega Pin 67
-#define C_DISABLE_BIT 5  // J5 /Atmega Pin 68
-#define STEPPERS_DISABLE_MASK ((1<<X_DISABLE_BIT)|(1<<Y_DISABLE_BIT)|(1<<Z_DISABLE_BIT)|(1<<C_DISABLE_BIT))   // All disable bits
+#define X_DISABLE_BIT          PJ2
+#define Y_DISABLE_BIT          PJ3
+#define Z_DISABLE_BIT          PJ4
+#define C_DISABLE_BIT          PJ5
+/* All disable bits */
+#define STEPPERS_DISABLE_MASK ((1 << X_DISABLE_BIT) | (1 << Y_DISABLE_BIT) | (1 << Z_DISABLE_BIT) | (1 << C_DISABLE_BIT))
 
 //Keep all axis engaged
 #define STEPPERS_LONG_LOCK_MASK  ((1<<X_DISABLE_BIT)|(1<<Y_DISABLE_BIT)|(1<<Z_DISABLE_BIT)|(1<<C_DISABLE_BIT))
