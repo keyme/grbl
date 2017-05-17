@@ -25,6 +25,13 @@ enum steps_e {
   ONE_TWENTY_EIGHTH
 };
 
+enum isgain_e {
+  FIVE = 0,
+  TEN,
+  TWENTY,
+  FORTY 
+};
+
 enum stepper_e {
   XTABLE = 0,
   YTABLE,
@@ -51,6 +58,7 @@ static const uint8_t scs_pin_lookup[4] = {
 
 void motor_drv_set_decay_mode(enum stepper_e stepper, enum decmod_e decmod);
 void motor_drv_set_torque(enum stepper_e stepper, uint8_t torque);
+void motor_drv_set_isgain(enum stepper_e stepper, enum isgain_e isgain);
 void motor_drv_set_micro_stepping(enum stepper_e stepper, enum steps_e steps);
 void motor_drv_enable_motor(enum stepper_e stepper);
 void motor_drv_disable_motor(enum stepper_e stepper);
