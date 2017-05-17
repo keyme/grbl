@@ -6,11 +6,14 @@
 
 #define ADDRESS_IDX 5U
 
-#define DECMOD_MASK     0x0F
+#define DECMOD_MASK     0x7
 #define DECMOD_IDX      8U
 
-#define TORQUE_MASK      0xFF
-#define TORQUE_IDX       0
+#define TORQUE_MASK     0xFF
+#define TORQUE_IDX      0
+
+#define ISGAIN_MASK     0x3
+#define ISGAIN_IDX      8U
 
 #define ENABLE_MASK     0x1
 #define ENABLE_IDX      0
@@ -72,6 +75,11 @@ void motor_drv_set_decay_mode(enum stepper_e stepper, enum decmod_e decmod)
 void motor_drv_set_torque(enum stepper_e stepper, uint8_t torque)
 {
   _motor_drv_set_val(stepper, TORQUE, TORQUE_IDX, TORQUE_MASK, torque);
+}
+
+void motor_drv_set_isgain(enum stepper_e stepper, enum isgain_e isgain)
+{
+  _motor_drv_set_val(stepper, CTRL, ISGAIN_IDX, ISGAIN_MASK, isgain);
 }
 
 void motor_drv_set_micro_stepping(enum stepper_e stepper, enum steps_e steps)
