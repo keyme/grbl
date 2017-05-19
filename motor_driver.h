@@ -56,6 +56,10 @@ static const uint8_t scs_pin_lookup[4] = {
   SCS_CAROUSEL_PIN
 };
 
+void motor_drv_report_register_vals(enum stepper_e stepper);
+
+void motor_drv_init();
+
 void motor_drv_set_decay_mode(enum stepper_e stepper, enum decmod_e decmod);
 void motor_drv_set_torque(enum stepper_e stepper, uint8_t torque);
 void motor_drv_set_isgain(enum stepper_e stepper, enum isgain_e isgain);

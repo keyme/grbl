@@ -31,6 +31,7 @@
 #include "limits.h"
 #include "probe.h"
 #include "magazine.h"
+#include "motor_driver.h"
 #include "report.h"
 #include "counters.h"
 #include "adc.h"
@@ -57,15 +58,22 @@ int main(void)
 
   // Initialize system upon power-up.
   serial_init();   // Setup serial baud rate and interrupts
-  #ifdef SPI_STEPPER_DRIVER
-    spi_init();      // Setup SPI Control register and pins
-  #endif
 
   settings_init(); // Load grbl settings from EEPROM
+
+  /* The ESTOP input is initialized in stepper_init. When we set up digital
+  outputs that are connected to the ESTOP, they might get toggled. For safety,
+  initialize any outputs connected to the ESTOP after stepper_init. For example:
+  the spi driver. */
   stepper_init();  // Configure stepper pins and interrupt timers
   system_init();   // Configure pinout pins and pin-change interrupt
   counters_init(); // Configure encoder and counter interrupt.
   adc_init();
+
+  #ifdef SPI_STEPPER_DRIVER
+  spi_init();      // Setup SPI Control register and pins
+  #endif
+  motor_drv_init();
 
   SYS_EXEC = 0;   //and mapped port if different
 
