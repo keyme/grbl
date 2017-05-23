@@ -32,6 +32,7 @@
 #include "signals.h"
 #include "spi.h"
 #include "nuts_bolts.h"
+#include "motor_driver.h"
 
 // Some useful constants.
 #define DT_SEGMENT (1.0/(ACCELERATION_TICKS_PER_SECOND*60.0)) // min/segment
@@ -43,22 +44,6 @@
 //SPI drivers
 #define SPI_ADDRESS_MASK        0x7
 #define SPI_RW_BIT              7
-
-// For use with the SPI driver chip
-typedef enum {
-  XTABLE = 0,
-  YTABLE,
-  GRIPPER,
-  CAROUSEL
-} steppers_t;
-
-static const uint8_t scs_pin_lookup[4] = {
-  SCS_XTABLE_PIN,
-  SCS_YTABLE_PIN,
-  SCS_GRIPPER_PIN,
-  SCS_CAROUSEL_PIN
-  
-};
 
 static int32_t max_servo_steps;
 
@@ -665,20 +650,8 @@ void st_reset()
 
 }
 
-void spi_read_driver_register(uint8_t addr, uint8_t * dataout , steppers_t stepper)
-{
-  //For read, MSB should be 1
-  uint8_t tx_data[2];
-  tx_data[0] = (1 << SPI_RW_BIT);
-  tx_data[0] |= (addr & SPI_ADDRESS_MASK) << 4;
-
-  bit_true(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select high
-  spi_transact_array(tx_data, dataout, 2);
-  bit_false(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select low
- 
-}
-
-void spi_driver_setup(steppers_t stepper)
+/* TODO: Move this to the motor driver */
+void spi_driver_setup(enum stepper_e stepper)
 {
   /* load base */
   for(uint8_t idx = 0; idx <= 14; idx += 2) {
@@ -701,7 +674,6 @@ void spi_driver_setup(steppers_t stepper)
   }
 }
 
-
 void keyme_init() 
 {
   // PORTG0 for drive enable
@@ -713,11 +685,7 @@ void keyme_init()
   // Microstepping
 
   #ifdef SPI_STEPPER_DRIVER
-    //Initialise SPI Stepper drivers
-    spi_driver_setup(XTABLE);
-    spi_driver_setup(YTABLE);
-    spi_driver_setup(GRIPPER);
-    spi_driver_setup(CAROUSEL);
+    /* TODO: Initialize motor drivers with tables here */
   #else
     MS_DDR = MS_MASK; //all output
     MS_PORT = settings.microsteps & MS_MASK;

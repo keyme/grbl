@@ -13,13 +13,19 @@
 #define TX_BUFFER_SIZE          128
 #define BLOCK_BUFFER_SIZE       48
 #define LINE_BUFFER_SIZE        255
+/* SPI PORTS */
+#define SPI_DDR                 DDRB 
+#define SPI_PORT                PORTB
+#define SPI_MOSI                PB2
+#define SPI_MISO                PB3
+#define SPI_SCK                 PB1
 
 //Slave Chip Selects for stepper motors
 #define SCS_XTABLE_PIN          PC6
 #define SCS_YTABLE_PIN          PC5
 #define SCS_CAROUSEL_PIN        PC7
 #define SCS_GRIPPER_PIN         PC4
-#define SCS_MASK  (1 << SCS_XTABLE_PIN) | (1 << SCS_YTABLE_PIN) | (1 << SCS_CAROUSEL_PIN) | (1 << SCS_GRIPPER_PIN)
+#define SCS_MASK  ((1 << SCS_XTABLE_PIN) | (1 << SCS_YTABLE_PIN) | (1 << SCS_CAROUSEL_PIN) | (1 << SCS_GRIPPER_PIN))
 
 // Note - All steppers need to be on the same port,
 // if not, use the commented section below
@@ -32,6 +38,20 @@
 #define SCS_GRIPPER_DDR_PIN     DDC4
 #define SCS_DDR_MASK (1 << SCS_XTABLE_DDR_PIN) | (1 << SCS_YTABLE_DDR_PIN) | (1 << SCS_CAROUSEL_DDR_PIN) | (1 << SCS_GRIPPER_DDR_PIN)
 
+/* Chip selects for digital pots */
+#define SCS_DIG_POT_PORT            PORTC
+#define SCS_DIG_POT_DDR             DDRC
+#define SCS_DIG_POT_GAIN            PC0
+#define SCS_DIG_POT_CAL             PC1
+#define SCS_DIG_POT_GAIN_DDR_PIN    DDC0
+#define SCS_DIG_POT_CAL_DDR_PIN     DDC1
+
+/* Chip select for SRAM */
+#define SCS_SRAM_PORT           PORTC
+#define SCS_SRAM_PIN            PC3
+#define SCS_SRAM_DDR            DDRC
+#define SCS_SRAM_DDR_PIN        DDC3
+
 // Define step pulse output pins. NOTE: All step bit pins must be on the same port.
 #define STEP_DDR      DDRH
 #define STEP_PORT     PORTH
@@ -41,6 +61,14 @@
 #define Z_STEP_BIT        2 // Atmega2560 pin 14 / Arduino Digital Pin xx
 #define C_STEP_BIT        3 // Atmega2560 pin 15 / Arduino Digital Pin 6
 #define STEP_MASK ((1<<X_STEP_BIT)|(1<<Y_STEP_BIT)|(1<<Z_STEP_BIT)|(1<<C_STEP_BIT)) // All step bits
+
+/* Motor driver resets */
+#define MOTOR_RESET_LINE_DRIVER_PIN             PG2
+#define MOTOR_RESET_LINE_DRIVER_DDR_PIN         DDG2
+#define MOTOR_RESET_PIN                         PG0
+#define MOTOR_RESET_PORT                        PORTG
+#define MOTOR_RESET_DDR                         DDRG
+#define MOTOR_RESET_DDR_PIN                     DDG0
 
 // Define step direction output pins. NOTE: All direction pins must be on the same port.
 #define DIRECTION_DDR      DDRH
