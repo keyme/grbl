@@ -31,6 +31,7 @@
 #include "limits.h"
 #include "signals.h"
 #include "probe.h"
+#include "ad5121.h"
 
 uint32_t masterclock=0;
 //uint16_t voltage_result[VOLTAGE_SENSOR_COUNT];
@@ -343,14 +344,45 @@ uint8_t system_execute_line(char *line)
 
         break;
       }
-        case 'P': // Set force sensitivity parameter. Avoids hastle of changing eeprom settings.
+        case 'P': // Digital Potentiometer Settings
+        {
           char_counter++;
-          if (!read_float(line, &char_counter, &parameter)){
+          float dev_id;
+
+          /* Read the number which determines which pot we're talking to */
+          if (!read_float(line, &char_counter, &dev_id)){
             return(STATUS_BAD_NUMBER_FORMAT);
           }
-          settings.force_sensor_level = (uint8_t)parameter;
-          adjustForceSensorPWM();
+
+          switch ((int)dev_id) {
+          case AD5121_0:
+          case AD5121_1:
+            break;
+          default:
+            return STATUS_INVALID_STATEMENT;
+          }
+
+          char command = line[char_counter++];
+
+          /* Determine which command we want to execute:
+             W: Write
+             S: Store to eeprom
+          */
+          switch (command) {
+          case 'W':
+            if (!read_float(line, &char_counter, &value)){
+              return(STATUS_BAD_NUMBER_FORMAT);
+            }
+            ad5121_write_pot((enum AD5121_ID)dev_id, (uint8_t)value);
+            break;
+          case 'S':
+            ad5121_store_pot((enum AD5121_ID)dev_id);
+            break;
+          default:
+            return STATUS_INVALID_STATEMENT;
+          }
           break;
+        }
         case 'F': // Perform Force servo process. By default it is defined for Gripper-Axis(Z) only.
           char_counter++; 
           if (line[char_counter] == 0) {
