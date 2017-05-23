@@ -38,6 +38,7 @@
 #include "spi.h"
 #include "systick.h"
 #include "signals.h"
+#include "ad5121.h"
 
 // Declare system global variable structure
 system_t sys = {
@@ -110,6 +111,12 @@ int main(void)
     st_reset(); // Clear stepper subsystem variables.
     signals_init();
     systick_init();  // Init systick and systick callbacks
+
+    /* Initialize digital potentiometers */
+#ifdef SPI_STEPPER_DRIVER
+    ad5121_init(AD5121_0);
+    ad5121_init(AD5121_1);
+#endif
 
     // Register first signals update callback
     systick_register_callback(500, signals_callback); // Start polling ADCs 0.5 seconds after init
