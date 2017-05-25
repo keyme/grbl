@@ -95,7 +95,10 @@ typedef struct {
   uint8_t force_sensor_level;  //0..255  low-->high sensitivity
   float mag_gap_limit;  // Maximum gap between two magazines at which point an alarm is thrown
   uint8_t mag_gap_enabled;  //If 0, then do not check the gap between magazines
-  uint8_t use_load_cell;  // 0 - Force Sensor, 1 - Load Cell
+  uint8_t use_load_cell;  // 0 - no load cell, 1 - load cell
+  uint8_t lc_daughter_card; // 0 - digital pots, 1 - daughter card
+  uint8_t use_spi; // 0 - no, 1 - yes
+  uint8_t spi_motor_drivers; // 0 - no, 1 - yes
 } settings_t;
 extern settings_t settings;
 
