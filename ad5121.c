@@ -56,7 +56,7 @@ void ad5121_write_pot(enum AD5121_ID dev_id, uint8_t val)
   struct ad5121_dev dev = devs[dev_id];
   uint8_t cmd[] = {AD_CMD_WRITE_RDAC, val};
 
-  spi_reconfigure(0, 1);
+  spi_set_mode(0, 1);
 
   /* Assert CS pin */
   *dev.cs_port &= ~(1 << dev.cs_pin);
@@ -74,7 +74,7 @@ uint8_t ad5121_read_pot(enum AD5121_ID dev_id)
   uint8_t cmd[] = {AD_CMD_READ, AD_MASK_READ_RDAC};
   uint8_t result[2] = {0};
 
-  spi_reconfigure(0, 1);
+  spi_set_mode(0, 1);
 
   /* Assert CS pin */
   *dev.cs_port &= ~(1 << dev.cs_pin);
@@ -100,7 +100,7 @@ void ad5121_store_pot(enum AD5121_ID dev_id)
   struct ad5121_dev dev = devs[dev_id];
   uint8_t cmd[] = {AD_CMD_RDAC_TO_EEPROM, 0x01};
 
-  spi_reconfigure(0, 1);
+  spi_set_mode(0, 1);
 
   /* Assert CS pin */
   *dev.cs_port &= ~(1 << dev.cs_pin);

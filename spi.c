@@ -5,7 +5,7 @@
 #include "spi.h"
 
 
-void spi_reconfigure(uint8_t cpol, uint8_t cpha)
+void spi_set_mode(uint8_t cpol, uint8_t cpha)
 {
   SPCR = ((1 << SPE)  | /* Enable */
           (0 << SPIE) | /* Disable SPI interrupt */
@@ -42,7 +42,7 @@ void spi_init()
   //Set SCS to low for all steppers
   SCS_PORT &= ~(SCS_MASK);
 
-  spi_reconfigure(0, 0);
+  spi_set_mode(0, 0);
 
 }
 
