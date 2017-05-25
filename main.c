@@ -114,8 +114,8 @@ int main(void)
 
     /* Initialize digital potentiometers */
 #ifdef SPI_STEPPER_DRIVER
-    ad5121_init(AD5121_0);
-    ad5121_init(AD5121_1);
+    ad5121_init(AD5121_GAIN);
+    ad5121_init(AD5121_CAL);
 #endif
 
     // Register first signals update callback

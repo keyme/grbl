@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 enum AD5121_ID {
-  AD5121_0 = 0,
-  AD5121_1 = 1
+  AD5121_GAIN = 0,
+  AD5121_CAL = 1
 };
 
 void ad5121_init(enum AD5121_ID dev_id);
