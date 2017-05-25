@@ -52,6 +52,11 @@ const char * reg_names[] = {"CTRL", "TORQUE", "OFF", "BLANK",
 
 void _motor_drv_write_reg(enum stepper_e stepper, enum address_e address, uint16_t data)
 {
+  /* Write to the specified address of stepper. The 12 least significant
+  bits are data bits to be written into the register specified by address.
+  The 4 most significant bits are masked with the RW bit and address*/
+  spi_set_mode(0, 0);
+
   uint8_t data_out[2] = {(address << ADDRESS_IDX) | ((data & 0x0F00) >> 8),
                          data & 0x00FF};
   uint8_t data_in[2];
@@ -64,6 +69,8 @@ void _motor_drv_write_reg(enum stepper_e stepper, enum address_e address, uint16
 
 uint16_t _motor_drv_read_reg(enum stepper_e stepper, enum address_e address)
 {
+  spi_set_mode(0, 0);
+
   uint8_t data_out[2] = {REG_RW | (address << ADDRESS_IDX), 0};
   uint8_t data_in[2];
 
