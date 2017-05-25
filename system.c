@@ -32,6 +32,7 @@
 #include "signals.h"
 #include "probe.h"
 #include "ad5121.h"
+#include "print.h"
 
 uint32_t masterclock=0;
 //uint16_t voltage_result[VOLTAGE_SENSOR_COUNT];
@@ -363,9 +364,9 @@ uint8_t system_execute_line(char *line)
           }
 
           char command = line[char_counter++];
-
           /* Determine which command we want to execute:
              W: Write
+             R: Read
              S: Store to eeprom
           */
           switch (command) {
@@ -375,6 +376,13 @@ uint8_t system_execute_line(char *line)
             }
             ad5121_write_pot((enum AD5121_ID)dev_id, (uint8_t)value);
             break;
+          case 'R':
+          {
+            const uint8_t result = ad5121_read_pot((enum AD5121_ID)dev_id);
+            print_uint8_base10(result);
+            printPgmString(PSTR("\r\n"));
+            break;
+          }
           case 'S':
             ad5121_store_pot((enum AD5121_ID)dev_id);
             break;
