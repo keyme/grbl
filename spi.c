@@ -4,15 +4,23 @@
 
 #include "spi.h"
 
+
+void spi_reconfigure(uint8_t cpol, uint8_t cpha)
+{
+  SPCR = ((1 << SPE)  | /* Enable */
+          (0 << SPIE) | /* Disable SPI interrupt */
+          (0 << DORD) | /* MSB first */
+          (1 << MSTR) | /* Master mode */
+          (1 << SPR1) | (0 << SPR0) | /* Set clock speed */
+          (cpol << CPOL) | (cpha << CPHA)); /* Mode 0 */
+}
+
 void spi_init()
 {
 
   /* TODO: Move these chip select initializations to
   their respective drivers. Since we don't have drivers yet,
   disable the CS lines here. */
-  SCS_DIG_POT_DDR |= (1 << SCS_DIG_POT_GAIN_DDR_PIN) | (1 <<  SCS_DIG_POT_CAL_DDR_PIN);
-  SCS_DIG_POT_PORT |= (1 << SCS_DIG_POT_GAIN) | (1 << SCS_DIG_POT_CAL);
-
   SCS_SRAM_DDR |= (1 << SCS_SRAM_DDR_PIN);
   SCS_SRAM_PORT |= (1 << SCS_SRAM_PIN);
 
@@ -34,12 +42,8 @@ void spi_init()
   //Set SCS to low for all steppers
   SCS_PORT &= ~(SCS_MASK);
 
-  SPCR = ((1 << SPE)  | /* Enable */
-          (0 << SPIE) | /* Disable SPI interrupt */
-          (0 << DORD) | /* MSB first */
-          (1 << MSTR) | /* Master mode */
-          (1 << SPR1) | (0 << SPR0) | /* Set clock speed */
-          (0 << CPOL) | (0 << CPHA)); /* Mode 0 */
+  spi_reconfigure(0, 0);
+
 }
 
 void spi_transact_array(uint8_t * dataout, uint8_t * datain, uint8_t len)
