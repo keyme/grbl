@@ -356,8 +356,8 @@ uint8_t system_execute_line(char *line)
           }
 
           switch ((int)dev_id) {
-          case AD5121_0:
-          case AD5121_1:
+          case AD5121_GAIN:
+          case AD5121_CAL:
             break;
           default:
             return STATUS_INVALID_STATEMENT;
