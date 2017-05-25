@@ -356,11 +356,11 @@ uint8_t system_execute_line(char *line)
           }
 
           switch ((int)dev_id) {
-          case AD5121_GAIN:
-          case AD5121_CAL:
-            break;
-          default:
-            return STATUS_INVALID_STATEMENT;
+            case AD5121_GAIN:
+            case AD5121_CAL:
+              break;
+            default:
+              return STATUS_INVALID_STATEMENT;
           }
 
           char command = line[char_counter++];
@@ -370,24 +370,24 @@ uint8_t system_execute_line(char *line)
              S: Store to eeprom
           */
           switch (command) {
-          case 'W':
-            if (!read_float(line, &char_counter, &value)){
-              return(STATUS_BAD_NUMBER_FORMAT);
+            case 'W':
+              if (!read_float(line, &char_counter, &value)){
+                return(STATUS_BAD_NUMBER_FORMAT);
+              }
+              ad5121_write_pot((enum AD5121_ID)dev_id, (uint8_t)value);
+              break;
+            case 'R':
+            {
+              const uint8_t result = ad5121_read_pot((enum AD5121_ID)dev_id);
+              print_uint8_base10(result);
+              printPgmString(PSTR("\r\n"));
+              break;
             }
-            ad5121_write_pot((enum AD5121_ID)dev_id, (uint8_t)value);
-            break;
-          case 'R':
-          {
-            const uint8_t result = ad5121_read_pot((enum AD5121_ID)dev_id);
-            print_uint8_base10(result);
-            printPgmString(PSTR("\r\n"));
-            break;
-          }
-          case 'S':
-            ad5121_store_pot((enum AD5121_ID)dev_id);
-            break;
-          default:
-            return STATUS_INVALID_STATEMENT;
+            case 'S':
+              ad5121_store_pot((enum AD5121_ID)dev_id);
+              break;
+            default:
+              return STATUS_INVALID_STATEMENT;
           }
           break;
         }
