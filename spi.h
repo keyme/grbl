@@ -26,7 +26,7 @@
 #define C_SPR0 1
 
 void spi_init();
-void spi_reconfigure(uint8_t cpol, uint8_t cpha);
+void spi_set_mode(uint8_t cpol, uint8_t cpha);
 
 // Transmit an array of bytes and receive a byte for each byte transmitted
 void spi_transact_array(uint8_t * dataout, uint8_t * datain, uint8_t len);
