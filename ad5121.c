@@ -59,12 +59,12 @@ void ad5121_write_pot(enum AD5121_ID dev_id, uint8_t val)
   spi_set_mode(0, 1);
 
   /* Assert CS pin */
-  *dev.cs_port &= ~(1 << dev.cs_pin);
+  *(dev.cs_port) &= ~(1 << dev.cs_pin);
 
   spi_write(cmd, ARRAY_SIZE(cmd));
 
   /* Deassert CS pin */
-  *dev.cs_port |= 1 << dev.cs_pin;
+  *(dev.cs_port) |= 1 << dev.cs_pin;
 
 }
 
@@ -77,20 +77,20 @@ uint8_t ad5121_read_pot(enum AD5121_ID dev_id)
   spi_set_mode(0, 1);
 
   /* Assert CS pin */
-  *dev.cs_port &= ~(1 << dev.cs_pin);
+  *(dev.cs_port) &= ~(1 << dev.cs_pin);
 
   spi_write(cmd, ARRAY_SIZE(cmd));
 
   /* Deassert CS pin */
-  *dev.cs_port |= 1 << dev.cs_pin;
+  *(dev.cs_port) |= 1 << dev.cs_pin;
 
   /* Assert CS pin */
-  *dev.cs_port &= ~(1 << dev.cs_pin);
+  *(dev.cs_port) &= ~(1 << dev.cs_pin);
 
   spi_transact_array(result, result, 2);
 
   /* Deassert CS pin */
-  *dev.cs_port |= 1 << dev.cs_pin;
+  *(dev.cs_port) |= 1 << dev.cs_pin;
 
   return result[1];
 }
@@ -103,10 +103,10 @@ void ad5121_store_pot(enum AD5121_ID dev_id)
   spi_set_mode(0, 1);
 
   /* Assert CS pin */
-  *dev.cs_port &= ~(1 << dev.cs_pin);
+  *(dev.cs_port) &= ~(1 << dev.cs_pin);
 
   spi_write(cmd, ARRAY_SIZE(cmd));
 
   /* Deassert CS pin */
-  *dev.cs_port |= 1 << dev.cs_pin;
+  *(dev.cs_port) |= 1 << dev.cs_pin;
 }
