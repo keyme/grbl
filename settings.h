@@ -99,6 +99,10 @@ typedef struct {
   uint8_t lc_daughter_card; // 0 - digital pots, 1 - daughter card
   uint8_t use_spi; // 0 - no, 1 - yes
   uint8_t spi_motor_drivers; // 0 - no, 1 - yes
+  uint8_t x_microsteps;
+  uint8_t y_microsteps;
+  uint8_t z_microsteps;
+  uint8_t c_microsteps;
 } settings_t;
 extern settings_t settings;
 
