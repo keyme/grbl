@@ -30,7 +30,6 @@
 #include "report.h"
 #include "magazine.h"
 #include "signals.h"
-#include "spi.h"
 #include "nuts_bolts.h"
 #include "motor_driver.h"
 
@@ -42,39 +41,6 @@
 #define RAMP_DECEL 2
 
 static int32_t max_servo_steps;
-
-/*
-  Initialization values for spi stepper drivers
-  Format: MSB, LSB
-*/
-uint8_t stepper_init_base[] = {
-    0x0C, 0x11, // CTRL,   DTIME=11, ISGAIN=00, EXSTALL=0, MODE=0010, RSTEP=0, RDIR=0, ENBL=1
-    0x11, 0xFF, // TORQUE, SMPLTH=001, TORQUE=0xFF
-    0x20, 0x30, // OFF,    PWMMODE=0, TOFF=0x30
-    0x30, 0x80, // BLANK,  ABT=0, TBLANK=0x80
-    0x41, 0x10, // DECAY,  DECMOD=001, TDECAY=0x10
-    0x50, 0x40, // STALL,  VDIV=00, SDCNT=00, SDTHR=0x40
-    0x6A, 0x59, // DRIVE,  IDRIVEP=10, IDRIVEN=10, TDRIVEP=01, TDRIVEN=01, OCPDEG=10, OCPTH=01
-    0x70, 0x00  // STATUS, init all status flags to 0
-};
-
-struct spi_stepper_base_diff {
-  uint8_t len_diffs;
-  uint8_t * diffs;
-};
-
-static uint8_t xtable_diffs[] = {0};
-static uint8_t ytable_diffs[] = {0};
-static uint8_t gripper_diffs[] = {0};
-static uint8_t carousel_diffs[] = {0};
-
-static const struct spi_stepper_base_diff spi_stepper_diff_list[4] =
-{
-  {.len_diffs = 0, .diffs = xtable_diffs},
-  {.len_diffs = 0, .diffs = ytable_diffs},
-  {.len_diffs = 0, .diffs = gripper_diffs},
-  {.len_diffs = 0, .diffs = carousel_diffs}
-};
 
 // Define Adaptive Multi-Axis Step-Smoothing(AMASS) levels and cutoff frequencies. The highest level
 // frequency bin starts at 0Hz and ends at its cutoff frequency. The next lower level frequency bin
@@ -648,30 +614,6 @@ void st_reset()
   segment_next_head = 1;
   busy = false;
 
-}
-
-/* TODO: Move this to the motor driver */
-void spi_driver_setup(enum stepper_e stepper)
-{
-  /* load base */
-  for(uint8_t idx = 0; idx <= 14; idx += 2) {
-      uint8_t tx_buf[2] = {stepper_init_base[idx], stepper_init_base[idx + 1]};
-
-      bit_true(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select high
-      spi_write(tx_buf, 2);
-      bit_false(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select low
-
-  }
-
-  /* load diff */
-  for (uint8_t idx = 0; idx < spi_stepper_diff_list[stepper].len_diffs; idx += 2) {
-    uint8_t tx_buf[2] = {spi_stepper_diff_list[stepper].diffs[idx],
-                         spi_stepper_diff_list[stepper].diffs[idx+1]};
-
-    bit_true(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select high
-    spi_write(tx_buf, 2);
-    bit_false(SCS_PORT, 1 << scs_pin_lookup[(uint8_t)stepper]); // Chip select low
-  }
 }
 
 void keyme_init() 
