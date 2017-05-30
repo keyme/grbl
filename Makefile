@@ -38,7 +38,7 @@ OBJECTS    = main.o motion_control.o gcode.o spindle_control.o serial.o \
              protocol.o stepper.o eeprom.o settings.o planner.o magazine.o \
              nuts_bolts.o limits.o print.o probe.o report.o system.o \
              counters.o gqueue.o adc.o spi.o signals.o systick.o \
-             motor_driver.o ad5121.o
+             motor_driver.o ad5121.o sram.o
 
 # FUSES      = -U hfuse:w:0xd9:m -U lfuse:w:0x24:m
 FUSES      = -U hfuse:w:0xd8:m -U lfuse:w:0xff:m

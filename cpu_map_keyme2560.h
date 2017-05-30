@@ -49,9 +49,9 @@
 
 /* Chip select for SRAM */
 #define SCS_SRAM_PORT           PORTC
-#define SCS_SRAM_PIN            PC3
+#define SCS_SRAM_PIN            PC2
 #define SCS_SRAM_DDR            DDRC
-#define SCS_SRAM_DDR_PIN        DDC3
+#define SCS_SRAM_DDR_PIN        DDC2
 
 /* Motor driver resets */
 #define MOTOR_RESET_LINE_DRIVER_PIN             PG2
