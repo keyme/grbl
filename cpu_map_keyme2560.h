@@ -21,6 +21,10 @@
 #define SPI_MISO                PB3
 #define SPI_SCK                 PB1
 
+/* MCU SS pin */
+#define AVR_SS_DDR              DDRB
+#define AVR_SS_DDR_BIT          DDB0
+
 //Slave Chip Selects for stepper motors
 #define SCS_XTABLE_PIN          PC6
 #define SCS_YTABLE_PIN          PC5

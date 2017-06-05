@@ -18,6 +18,11 @@ void spi_set_mode(uint8_t cpol, uint8_t cpha)
 void spi_init()
 {
 
+  /* The AVR's SS pin needs to be set to an output. If not,
+  the AVR might operate in slave mode, causing the SPI module
+  not to function as expected */
+  AVR_SS_DDR |= (1 << AVR_SS_DDR_BIT);
+
   /* TODO: Move these chip select initializations to
   their respective drivers. Since we don't have drivers yet,
   disable the CS lines here. */
