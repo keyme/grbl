@@ -34,30 +34,29 @@ void sram_init()
   sram_set_mode(BYTE_MODE);
 }
 
-uint8_t sram_read_mode()
+uint8_t _sram_mode_helper(uint8_t * data_out, uint8_t len)
 {
   spi_set_mode(0, 0);
 
-  uint8_t data_out[2] = {RDMR, 0xFF};
-  uint8_t data_in[2];
+  uint8_t data_in[len];
 
   bit_false(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
-  spi_transact_array(data_out, data_in, 2);
+  spi_transact_array(data_out, data_in, len);
   bit_true(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
 
-  return (data_in[1] & MODE_MASK) >> MODE_IDX;
+  return (data_in[len - 1] & MODE_MASK) >> MODE_IDX;
+}
+
+uint8_t sram_read_mode()
+{
+  uint8_t data_out[2] = {RDMR, 0xFF};
+  return _sram_mode_helper(data_out, 2);
 }
 
 void sram_set_mode(enum sram_mode_e mode)
 {
-  spi_set_mode(0, 0);
-
   uint8_t data_out[2] = {WRMR, mode << MODE_IDX};
-  uint8_t data_in[2];
-
-  bit_false(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
-  spi_transact_array(data_out, data_in, 2);
-  bit_true(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
+  _sram_mode_helper(data_out, 2);
 }
 
 uint8_t _sram_transact_helper(uint8_t * data_out, uint8_t len)
