@@ -34,39 +34,12 @@ void sram_init()
   sram_set_mode(BYTE_MODE);
 }
 
-uint8_t sram_read_mode()
-{
-  spi_set_mode(0, 0);
-
-  uint8_t data_out[2] = {RDMR, 0xFF};
-  uint8_t data_in[2];
-
-  bit_false(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
-  spi_transact_array(data_out, data_in, 2);
-  bit_true(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
-
-  return (data_in[1] & MODE_MASK) >> MODE_IDX;
-}
-
-void sram_set_mode(enum sram_mode_e mode)
-{
-  spi_set_mode(0, 0);
-
-  uint8_t data_out[2] = {WRMR, mode << MODE_IDX};
-  uint8_t data_in[2];
-
-  bit_false(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
-  spi_transact_array(data_out, data_in, 2);
-  bit_true(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
-}
-
-uint8_t _sram_transact_helper(uint8_t * data_out)
+uint8_t _sram_transact_helper(uint8_t * data_out, uint8_t len)
 {
   /* Transacts the array data_out over SPI to the SRAM IC
      and returns the last byte received. */
   spi_set_mode(0, 0);
 
-  uint8_t len = ARRAY_SIZE(data_out);
   uint8_t data_in[len];
 
   bit_false(SCS_SRAM_PORT, 1 << SCS_SRAM_PIN);
@@ -77,11 +50,23 @@ uint8_t _sram_transact_helper(uint8_t * data_out)
 
 }
 
+uint8_t sram_read_mode()
+{
+  uint8_t data_out[2] = {RDMR, 0xFF};
+  return (_sram_transact_helper(data_out, 2) & MODE_MASK) >> MODE_IDX;
+}
+
+void sram_set_mode(enum sram_mode_e mode)
+{
+  uint8_t data_out[2] = {WRMR, mode << MODE_IDX};
+  _sram_transact_helper(data_out, 2);
+}
+
 uint8_t sram_read_byte(uint16_t addr)
 {
   uint8_t data_out[4] = {READ, MSB(addr), LSB(addr), 0xFF};
 
-  return _sram_transact_helper(data_out);
+  return _sram_transact_helper(data_out, 4);
 }
 
 void sram_write_byte(uint16_t addr, uint8_t val)
@@ -89,5 +74,5 @@ void sram_write_byte(uint16_t addr, uint8_t val)
   /* Ignore the return value from _sram_transact_helper */
   uint8_t data_out[4] = {WRITE, MSB(addr), LSB(addr), val};
 
-  _sram_transact_helper(data_out);
+  _sram_transact_helper(data_out, 4);
 }
