@@ -40,7 +40,7 @@
 #include "signals.h"
 #include "ad5121.h"
 #include "motor_driver.h"
-
+#include "sram.h"
 
 // Declare system global variable structure
 system_t sys = {
@@ -77,6 +77,7 @@ int main(void)
   spi_init();      // Setup SPI Control register and pins
   #endif
   motor_drv_init();
+  sram_init();
 
   SYS_EXEC = 0;   //and mapped port if different
 
