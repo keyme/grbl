@@ -379,8 +379,11 @@ uint8_t system_execute_line(char *line)
             case 'R':
             {
               const uint8_t result = ad5121_read_pot((enum AD5121_ID)dev_id);
+              printPgmString(PSTR("[POT<"));
+              print_uint8_base10(dev_id);
+              printPgmString(PSTR(">:"));
               print_uint8_base10(result);
-              printPgmString(PSTR("\r\n"));
+              printPgmString(PSTR("]\r\n"));
               break;
             }
             case 'S':
