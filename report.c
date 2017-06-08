@@ -238,6 +238,11 @@ void report_grbl_settings() {
   printPgmString(PSTR(" (magazine gap enabled, bool)"));
   printPgmString(PSTR("\r\n$42=")); print_uint8_base10(settings.use_load_cell);
   printPgmString(PSTR(" (use load cell, bool)"));
+  /* Because of the way Grbl eeprom settings are parsed in Motion, the index
+  of (end_of_settings) needs to directly follow the last index of the eeprom
+  settings. */
+  printPgmString(PSTR("\r\n$43=1"));
+  printPgmString(PSTR(" (end_of_settings)"));
   /* End KEYME Specific */
   printPgmString(PSTR("\r\n"));
 }
