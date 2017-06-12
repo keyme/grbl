@@ -75,9 +75,9 @@ int main(void)
 
   #ifdef SPI_STEPPER_DRIVER
   spi_init();      // Setup SPI Control register and pins
-  #endif
   motor_drv_init();
   sram_init();
+  #endif
 
   SYS_EXEC = 0;   //and mapped port if different
 
