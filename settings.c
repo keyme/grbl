@@ -25,6 +25,7 @@
 #include "protocol.h"
 #include "report.h"
 #include "limits.h"
+#include "motor_driver.h"
 
 settings_t settings;
 
@@ -109,6 +110,10 @@ void settings_reset() {
   settings.lc_daughter_card = DEFAULT_LC_DAUGHTER_CARD;
   settings.use_spi = DEFAULT_USE_SPI;
   settings.spi_motor_drivers = DEFAULT_SPI_MOTOR_DRIVERS;
+  settings.x_microsteps = DEFAULT_X_MICROSTEPS;
+  settings.y_microsteps = DEFAULT_Y_MICROSTEPS;
+  settings.z_microsteps = DEFAULT_Z_MICROSTEPS;
+  settings.c_microsteps = DEFAULT_C_MICROSTEPS;
   write_global_settings();
 }
 
@@ -250,6 +255,26 @@ uint8_t settings_store_global_setting(int parameter, float value) {
     case 43: settings.lc_daughter_card = value; break;
     case 44: settings.use_spi = value; break;
     case 45: settings.spi_motor_drivers = value; break;
+    case 46: case 47: case 48: case 49:
+      if (value > TWO_SIXTY_FOURTH) {
+        return(STATUS_INVALID_STATEMENT);
+      }
+      switch (parameter) {
+        case 46:
+          settings.x_microsteps = value;
+          break;
+        case 47:
+          settings.y_microsteps = value;
+          break;
+        case 48:
+          settings.z_microsteps = value;
+          break;
+        case 49:
+          settings.c_microsteps = value;
+          break;
+      }
+      motor_drv_init();
+      break;
     default:
       return(STATUS_INVALID_STATEMENT);
   }

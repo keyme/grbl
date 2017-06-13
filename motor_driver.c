@@ -168,6 +168,9 @@ uint8_t _motor_drv_get_micro_steps_mask(enum stepper_e idx)
 
 void motor_drv_init()
 {
+  /* Note that this function is called everytime one of the
+  microstepping values in the settings struct is changed over
+  serial. */
 
   /* Wake up motor drivers before issuing a reset */
   STEPPERS_DISABLE_PORT |= STEPPERS_DISABLE_MASK;
@@ -199,22 +202,8 @@ void motor_drv_init()
 
   for (int idx = 0; idx < 4; idx++) {
     /* Set microstepping */
-    const uint8_t mask = _motor_drv_get_micro_steps_mask((enum stepper_e)idx);
-    uint8_t steps = 0;
-    switch (mask) {
-      case 0:
-        steps = FULL;
-        break;
-      case 1:
-        steps = HALF;
-        break;
-      case 2:
-        steps = QUARTER;
-        break;
-      case 3:
-        steps = SIXTEENTH;
-        break;
-    }
+    uint8_t steps = *(&settings.x_microsteps + idx); 
+
     motor_drv_set_micro_steps((enum stepper_e)idx, (enum steps_e)steps);
     motor_drv_enable_motor((enum stepper_e)idx);
   }

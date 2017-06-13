@@ -244,10 +244,18 @@ void report_grbl_settings() {
   printPgmString(PSTR(" (use spi, bool)"));
   printPgmString(PSTR("\r\n$45=")); print_uint8_base10(settings.spi_motor_drivers);
   printPgmString(PSTR(" (spi motor drivers, bool)"));
+  printPgmString(PSTR("\r\n$46=")); print_uint8_base10(settings.x_microsteps);
+  printPgmString(PSTR(" (x microsteps, bool)"));
+  printPgmString(PSTR("\r\n$47=")); print_uint8_base10(settings.y_microsteps);
+  printPgmString(PSTR(" (y microsteps, bool)"));
+  printPgmString(PSTR("\r\n$48=")); print_uint8_base10(settings.z_microsteps);
+  printPgmString(PSTR(" (z microsteps, bool)"));
+  printPgmString(PSTR("\r\n$49=")); print_uint8_base10(settings.c_microsteps);
+  printPgmString(PSTR(" (c microsteps, bool)"));
   /* Because of the way Grbl eeprom settings are parsed in Motion, the index
   of (end_of_settings) needs to directly follow the last index of the eeprom
   settings. */
-  printPgmString(PSTR("\r\n$46=1"));
+  printPgmString(PSTR("\r\n$50=1"));
   printPgmString(PSTR(" (end_of_settings)"));
   /* End KEYME Specific */
   printPgmString(PSTR("\r\n"));
