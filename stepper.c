@@ -625,10 +625,10 @@ void keyme_init()
   ESTOP_PORT &= ~(ESTOP_BIT);           //estop input normal-low
 
   // Microstepping
-  #ifndef SPI_STEPPER_DRIVER
+  if (settings.spi_motor_drivers == 0) {
     MS_DDR = MS_MASK; //all output
     MS_PORT = settings.microsteps & MS_MASK;
-  #endif
+  }
 
   // Phase Current Decay
   PFD_DDR = PFD_MASK; //all output

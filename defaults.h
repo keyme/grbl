@@ -111,7 +111,10 @@
   #define DEFAULT_FORCE_SENSOR_LEVEL 77 // 1.5V out of 5.0V=255 max
   #define DEFAULT_MAG_GAP_LIMIT 12.5 //in mm (units)
   #define DEFAULT_MAG_GAP_ENABLED false
-  #define DEFAULT_USE_LOAD_CELL false
+  #define DEFAULT_USE_LOAD_CELL 0
+  #define DEFAULT_LC_DAUGHTER_CARD 1
+  #define DEFAULT_USE_SPI 0 
+  #define DEFAULT_SPI_MOTOR_DRIVERS 0
 #endif
 
 #ifdef DEFAULTS_BENCH

@@ -106,6 +106,9 @@ void settings_reset() {
   settings.mag_gap_enabled = DEFAULT_MAG_GAP_ENABLED;
   settings.mag_gap_limit = DEFAULT_MAG_GAP_LIMIT;
   settings.use_load_cell = DEFAULT_USE_LOAD_CELL;
+  settings.lc_daughter_card = DEFAULT_LC_DAUGHTER_CARD;
+  settings.use_spi = DEFAULT_USE_SPI;
+  settings.spi_motor_drivers = DEFAULT_SPI_MOTOR_DRIVERS;
   write_global_settings();
 }
 
@@ -244,6 +247,9 @@ uint8_t settings_store_global_setting(int parameter, float value) {
     case 40: settings.mag_gap_limit = value; break;
     case 41: settings.mag_gap_enabled = value; break;
     case 42: settings.use_load_cell = value; break;
+    case 43: settings.lc_daughter_card = value; break;
+    case 44: settings.use_spi = value; break;
+    case 45: settings.spi_motor_drivers = value; break;
     default:
       return(STATUS_INVALID_STATEMENT);
   }

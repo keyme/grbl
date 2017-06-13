@@ -18,7 +18,6 @@
   You should have received a copy of the GNU General Public License
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "system.h"
 #include "serial.h"
 #include "settings.h"
@@ -73,11 +72,14 @@ int main(void)
   counters_init(); // Configure encoder and counter interrupt.
   adc_init();
 
-  #ifdef SPI_STEPPER_DRIVER
-  spi_init();      // Setup SPI Control register and pins
-  motor_drv_init();
-  sram_init();
-  #endif
+  if (settings.use_spi) {
+    /* Setup SPI control register and pins */
+    spi_init();
+    sram_init();
+    if (settings.spi_motor_drivers) {
+      motor_drv_init();
+    }
+  }
 
   SYS_EXEC = 0;   //and mapped port if different
 
@@ -116,10 +118,10 @@ int main(void)
     systick_init();  // Init systick and systick callbacks
 
     /* Initialize digital potentiometers */
-#ifdef SPI_STEPPER_DRIVER
-    ad5121_init(AD5121_GAIN);
-    ad5121_init(AD5121_CAL);
-#endif
+    if (settings.use_spi && !settings.lc_daughter_card) {
+      ad5121_init(AD5121_GAIN);
+      ad5121_init(AD5121_CAL);
+    }
 
     // Register first signals update callback
     systick_register_callback(500, signals_callback); // Start polling ADCs 0.5 seconds after init
