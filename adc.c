@@ -73,11 +73,13 @@ void adc_init()
   // associated peripherals, such as with the stepper motors.
 
 
-  if (settings.use_load_cell) {
+  if (settings.lc_daughter_card) {
+    // Daughter Card load cell conditioner
     LC_DDR &= ~(LC_MASK);
     channel_map[FORCE] = LC_ADC;
   } else {
-    FORCE_DDR &= ~(FORCE_MASK); // Force servo
+    // Onboard load cell conditioner
+    ONBOARD_LC_DDR &= ~(ONBOARD_LC_MASK);
     channel_map[FORCE] = F_ADC;
   }
 
