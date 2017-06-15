@@ -231,10 +231,10 @@
 #define FSCTRL_BIT 5
 
 // Feedback sensor voltage is now analog and called FVOLT
-#define FORCE_DDR DDRK
-#define FORCE_BIT 7
-#define FORCE_PORT PORTK
-#define FORCE_MASK (1 << FORCE_BIT)
+#define ONBOARD_LC_DDR DDRK
+#define ONBOARD_LC_BIT 7
+#define ONBOARD_LC_PORT PORTK
+#define ONBOARD_LC_MASK (1 << ONBOARD_LC_BIT)
 
 // ADC Selection
 #define F_ADC          15 // ADC 15 - Force
