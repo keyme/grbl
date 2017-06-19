@@ -12,7 +12,7 @@
 #include "systick.h"
 
 #define N_FILTER 3
-#define SIGNALS_DEFAULT_INTERVAL 100
+#define SIGNALS_DEFAULT_INTERVAL 10
 #define X_BUF(i) adc_samples_x[FORCE_VALUE_INDEX][i]
 
 // Unfiltered ADC readings
