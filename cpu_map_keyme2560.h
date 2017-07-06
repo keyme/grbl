@@ -100,7 +100,14 @@
 #define STEPPERS_LONG_LOCK_MASK  ((1<<X_DISABLE_BIT)|(1<<Y_DISABLE_BIT)|(1<<Z_DISABLE_BIT)|(1<<C_DISABLE_BIT))
 #define STEPPERS_LOCK_TIME_MULTIPLE 200  //ms*250 = quarter seconds so 255->63.75s
 
-
+/* OVERCURRENT RETRIES */
+#define OVERCURRENT_RETRY_PORT  PORTD
+#define OVERCURRENT_RETRY_DDR   DDRD
+#define X_AXIS_RETRY_PIN        PD6
+#define Y_AXIS_RETRY_PIN        PD4
+#define Z_AXIS_RETRY_PIN        PD5
+#define C_AXIS_RETRY_PIN        PD7
+#define OVERCURRENT_RETRY_MASK  ((1 << X_AXIS_RETRY_PIN) | (1 << Y_AXIS_RETRY_PIN) | (1 << Z_AXIS_RETRY_PIN) | (1 << C_AXIS_RETRY_PIN))
 
 // NOTE: All limit bit pins must be on the same port
 #define LIMIT_DDR       DDRD
