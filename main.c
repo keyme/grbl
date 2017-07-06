@@ -53,6 +53,15 @@ const char* version_string = "VERSION=" XSTR(GRBL_VERSION);
 
 volatile sys_flags_t sysflags;
 
+void set_overcurrent_retries()
+{
+  /* Set as output */
+  OVERCURRENT_RETRY_DDR |= OVERCURRENT_RETRY_MASK;
+
+  /* Set high */
+  OVERCURRENT_RETRY_PORT |= OVERCURRENT_RETRY_MASK;
+}
+
 int main(void)
 {
   // Ensure that the compiler doesn't try to throw out the version string
@@ -71,6 +80,8 @@ int main(void)
   system_init();   // Configure pinout pins and pin-change interrupt
   counters_init(); // Configure encoder and counter interrupt.
   adc_init();
+
+  set_overcurrent_retries();
 
   if (settings.use_spi) {
     /* Setup SPI control register and pins */
