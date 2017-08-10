@@ -188,13 +188,13 @@ void motor_drv_init()
 
   /* Note that the X, Y and C motors are rated for
   5A, but the gripper motor is only rated for 3A */
-  motor_drv_set_torque(XTABLE, TORQUE_VAL_5A);
+  motor_drv_set_torque(XTABLE, TORQUE_VAL_3A);
   motor_drv_set_isgain(XTABLE, FIVE);
 
-  motor_drv_set_torque(YTABLE, TORQUE_VAL_5A);
+  motor_drv_set_torque(YTABLE, TORQUE_VAL_3A);
   motor_drv_set_isgain(YTABLE, FIVE);
 
-  motor_drv_set_torque(CAROUSEL, TORQUE_VAL_5A);
+  motor_drv_set_torque(CAROUSEL, TORQUE_VAL_3A);
   motor_drv_set_isgain(CAROUSEL, FIVE);
 
   motor_drv_set_torque(GRIPPER, TORQUE_VAL_3A);
@@ -202,7 +202,7 @@ void motor_drv_init()
 
   for (int idx = 0; idx < 4; idx++) {
     /* Set microstepping */
-    uint8_t steps = *(&settings.x_microsteps + idx); 
+    uint8_t steps = *(&settings.x_microsteps + idx);
 
     motor_drv_set_micro_steps((enum stepper_e)idx, (enum steps_e)steps);
     motor_drv_enable_motor((enum stepper_e)idx);
