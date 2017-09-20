@@ -473,7 +473,7 @@ uint8_t system_execute_line(char *line)
 
 
 // * line num stuff *
-#define STLT_SIZE BLOCK_BUFFER_SIZE+1
+#define STLT_SIZE BLOCK_BUFFER_SIZE*2
 
 typedef struct {
   linenumber_t lines[STLT_SIZE];
