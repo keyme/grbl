@@ -473,10 +473,11 @@ uint8_t system_execute_line(char *line)
 
 
 // * line num stuff *
-#define STLT_SIZE BLOCK_BUFFER_SIZE+1
+#define STLT_SIZE BLOCK_BUFFER_SIZE*2
 
 typedef struct {
   linenumber_t lines[STLT_SIZE];
+  linenumber_t last_line;
   uint8_t head;
   uint8_t tail;
 } st_linetrack_t;
@@ -515,9 +516,9 @@ linenumber_t linenumber_get(){
   uint8_t read_idx = linenumber_next();
   if (read_idx != st_lt.head) {
     st_lt.tail = read_idx;
-    return st_lt.lines[read_idx];
+    st_lt.last_line = st_lt.lines[read_idx];
   }
-  return 0;
+  return st_lt.last_line;
 }
 
 linenumber_t linenumber_peek(){
