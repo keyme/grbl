@@ -27,6 +27,7 @@
 #include "planner.h"
 #include "stepper.h"
 #include "motion_control.h"
+#include "motor_driver.h"
 #include "report.h"
 #include "systick.h"
 #include "magazine.h"
@@ -189,6 +190,14 @@ static void protocol_check_required_reports()
   }
 }
 
+static void maybe_reinit_motors(void)
+{
+  uint8_t estop_state = (ESTOP_PIN & ESTOP_MASK);
+  if ((estop_state != sys.last_estop_state) && !estop_state) {
+    motor_drv_init();
+  }
+}
+
 // Executes run-time commands, when required. This is called from various check points in the main
 // program, primarily where there may be a while loop waiting for a buffer to clear space or any
 // point where the execution time from the last check point may be more than a fraction of a second.
@@ -206,6 +215,10 @@ void protocol_execute_runtime()
 
   // Service SysTick Callbacks
   systick_service_callbacks();
+
+  if (settings.spi_motor_drivers) {
+    maybe_reinit_motors();
+  }
 
   protocol_check_required_reports();
 
