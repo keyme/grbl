@@ -81,7 +81,7 @@
 #define ALARM_HOME_FAIL   bit(4) // home switch transition not found
 #define ALARM_ESTOP       bit(5) // external estop pressed
 #define ALARM_FORCESERVO_FAIL bit(6) // force value not reached while servoing
-#define ALARM_MAG_MISSING  bit(7) //Mag expected but not sensed
+#define ALARM_CAROUSEL_DRAGGING  bit(7) // Mag expected but not sensed
 
 // Define system flags
 #define SYSFLAG_EOL_REPORT bit(0)  // Block is done executing, report linenum

@@ -99,7 +99,7 @@ void magazine_gap_monitor()
 
   if (delta_pos > mag_state.delta_pos_limit) {
     sys.state = STATE_ALARM;
-    sys.alarm |= ALARM_MAG_MISSING;
+    sys.alarm |= ALARM_CAROUSEL_DRAGGING;
     SYS_EXEC |= (EXEC_FEED_HOLD | EXEC_ALARM | EXEC_CRIT_EVENT);
     st_go_idle();
     protocol_execute_runtime();
