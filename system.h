@@ -150,9 +150,13 @@ void system_execute_startup(char *line);
 
 #define LINENUMBER_SPECIAL_SERVO 0x10000 //denotes force servoing
 #define LINENUMBER_MAX         (LINENUMBER_SPECIAL-1)
-#define LINEMASK_OFF_EDGE         (0x0)
-#define LINEMASK_ON_EDGE         (0x1)
-#define LINEMASK_DONE           (0x2)
+#define LINEMASK_OFF_EDGE (0x0)
+#define LINEMASK_ON_EDGE  (0x1)
+#define LINEMASK_DONE     (0x2)
+#define FORCE_SERVO_START (0x0)
+#define FORCE_SERVO_BUSY  (0x1)
+#define FORCE_SERVO_DONE  (0x2)
+
 typedef uint32_t linenumber_t;
 
 

@@ -409,6 +409,10 @@ void limits_force_servo()
   // delay for LONG_FORCE_SERVO_DELAY ms 
   delay = LONG_FORCE_SERVO_DELAY;
 
+  linenumber_insert(LINENUMBER_SPECIAL_SERVO | ((servo_line_number * 4) + FORCE_SERVO_START));
+  request_eol_report();
+  protocol_execute_runtime();
+
   // Perform force servoing cyles
   do {
     // Stay in this loop while moving the gripper motor
@@ -434,8 +438,7 @@ void limits_force_servo()
     limits_disable();
     st_reset(); // Immediately force kill steppers and reset step segment buffer.
     plan_reset(); // Reset planner buffer. Zero planner positions. Ensure homing motion is cleared.
-
-    linenumber_insert(LINENUMBER_SPECIAL_SERVO | ((servo_line_number * 4) + LINEMASK_DONE));
+    linenumber_insert(LINENUMBER_SPECIAL_SERVO | ((servo_line_number * 4) + FORCE_SERVO_BUSY));
     request_eol_report();
     protocol_execute_runtime();
     request_eol_report(); // Need to report once more to report the "DONE" linenumber
@@ -457,7 +460,11 @@ void limits_force_servo()
     delay = SHORT_FORCE_SERVO_DELAY;
      
   } while ((cycles <= MIN_FORCE_SERVO_CYCLES) | ((cycles <= MAX_FORCE_SERVO_CYCLES) \
-          && (abs(limits.bump_grip_force - FORCE_VAL) > GRIPPER_FORCE_THRESHOLD)));  
+          && (abs(limits.bump_grip_force - FORCE_VAL) > GRIPPER_FORCE_THRESHOLD)));
+
+  linenumber_insert(LINENUMBER_SPECIAL_SERVO | ((servo_line_number * 4) + FORCE_SERVO_DONE));
+  request_eol_report();
+  protocol_execute_runtime();
 
   // Resume the regular sampling of ADCs
   signals.pause = 0;
