@@ -28,7 +28,7 @@
 #                is connected.
 # FUSES ........ Parameters for avrdude to flash the fuses appropriately.
 
-VERSION = 0.4.5
+VERSION = 0.4.6
 
 DEVICE     ?= atmega2560
 CLOCK      = 16000000

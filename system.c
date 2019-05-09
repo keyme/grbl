@@ -302,47 +302,10 @@ uint8_t system_execute_line(char *line)
           if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
           else { report_ngc_parameters(); }
           break;
-      case 'B': // Turn braking on or off
+      case 'B': // Turn braking off
       {
-        // Disable all locks by default
-        uint8_t new_lock_mask = 0;
-
-        // Loop through and unmask any requested axis
-        while (line[++char_counter] != 0) {
-          switch (line[char_counter]) {
-          case 'X':
-            new_lock_mask |= (1 << X_DISABLE_BIT);
-            break;
-          case 'Y':
-            new_lock_mask |= (1 << Y_DISABLE_BIT);
-            break;
-          case 'Z':
-            new_lock_mask |= (1 << Z_DISABLE_BIT);
-            break;
-          case 'C':
-            new_lock_mask |= (1 << C_DISABLE_BIT);
-            break;
-          default:
-            return STATUS_INVALID_STATEMENT;
-          }
-        }
-
         // Clear any locked motors
         st_disable(true, sys.lock_mask);
-
-        sys.lock_mask = new_lock_mask;
-
-        // Enable all axis that should be locked
-        st_disable(false, sys.lock_mask);
-
-        // Start the shutdown delay so we safely kill motors after
-        // going idle
-        if (new_lock_mask) {
-          st_start_shutdown_timer();
-        } else {
-          st_stop_shutdown_timer();
-        }
-
         break;
       }
         case 'P': // Digital Potentiometer Settings
