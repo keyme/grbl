@@ -210,6 +210,14 @@
 #define PFD_MASK 0xFF //all 8 bits are used, in XYZC order
 #define SET_DECAY_MODE(axis,val) (val<<((axis*2)&3)) //2 bits
 
+#define EJECTOR_STEPPER_DDR DDRL
+#define EJECTOR_STEPPER_PORT PORTL
+#define EJECTOR_STEPPER_PIN PINL
+#define EJECTOR_STEPPER_STEP_BIT PL7
+#define EJECTOR_STEPPER_DIR_BIT PL6
+#define EJECTOR_STEPPER_HOME_BIT PL5
+#define EJECTOR_STEPPER_ENABLE_N_BIT PL1
+
 #define NEW_BOARD
 #ifdef NEW_BOARD
 
@@ -322,4 +330,3 @@
 #define IO_RESET_MASK (1<<IO_RESET_BIT)
 
 #endif
-

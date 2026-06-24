@@ -631,12 +631,14 @@ void keyme_init()
   }
 
   // Phase Current Decay
+#ifndef KEYME_J101_EJECTOR
   PFD_DDR = PFD_MASK; //all output
   uint8_t axis, value=0;
   for (axis=0; axis<N_AXIS; axis++) {
     value |= SET_DECAY_MODE(axis, settings.decay_mode);
   }
   PFD_PORT = value & PFD_MASK;
+#endif
 
   // MVOLT is used for voltage sensing
   // TODO:  read on command.  (create command)
@@ -1165,4 +1167,3 @@ void st_prep_buffer()
      we know when the plan is feasible in the context of what's already in the code and not
      require too much more code?
 */
-

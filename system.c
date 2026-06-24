@@ -32,6 +32,7 @@
 #include "signals.h"
 #include "probe.h"
 #include "ad5121.h"
+#include "ejector_stepper.h"
 #include "print.h"
 
 uint32_t masterclock=0;
@@ -267,6 +268,9 @@ uint8_t system_execute_line(char *line)
       if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
       IO_RESET_PORT |= IO_RESET_MASK;  //reset IO.  Will re-enable in loop
       break;
+    case 'Q':
+      return ejector_stepper_execute_line(line, &char_counter);
+      break;
     case 'Z': //zero the current buffers
       if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
       SYS_EXEC |= EXEC_FEED_HOLD;  //Stop motion;
@@ -491,4 +495,3 @@ linenumber_t linenumber_peek(){
   }
   return 0;
 }
-
