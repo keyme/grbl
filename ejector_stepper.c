@@ -3,7 +3,7 @@
 #include "print.h"
 #include "report.h"
 
-#ifdef KEYME_J101_EJECTOR
+#ifdef KEYME_J105_EJECTOR
 
 #define EJECTOR_TIMER_HZ 2000000UL
 #define EJECTOR_MIN_TIMER_TICKS 32U

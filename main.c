@@ -78,7 +78,7 @@ int main(void)
   initialize any outputs connected to the ESTOP after stepper_init. For example:
   the spi driver. */
   stepper_init();  // Configure stepper pins and interrupt timers
-  ejector_stepper_init(); // Configure spare J101 ejector pins disabled.
+  ejector_stepper_init(); // Configure spare J105 ejector pins enabled.
   system_init();   // Configure pinout pins and pin-change interrupt
   counters_init(); // Configure encoder and counter interrupt.
   adc_init();
@@ -127,7 +127,7 @@ int main(void)
     magazine_init();
     plan_reset(); // Clear block buffer and planner variables
     st_reset(); // Clear stepper subsystem variables.
-    ejector_stepper_init(); // Reset J101 ejector state and disable its driver.
+    ejector_stepper_init(); // Reset J105 ejector state and enable its driver.
     signals_init();
     systick_init();  // Init systick and systick callbacks
 
