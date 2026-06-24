@@ -5,11 +5,6 @@
 
 #ifdef KEYME_J101_EJECTOR
 
-#define EJECTOR_DEFAULT_RATE_STEPS_PER_SECOND 800U
-#define EJECTOR_DEFAULT_START_RATE_STEPS_PER_SECOND 50U
-#define EJECTOR_DEFAULT_ACCEL_STEPS_PER_SECOND2 500U
-#define EJECTOR_DEFAULT_HOME_MAX_STEPS 1200U
-#define EJECTOR_DEFAULT_MAX_POSITION 65534U
 #define EJECTOR_TIMER_HZ 2000000UL
 #define EJECTOR_MIN_TIMER_TICKS 32U
 #define EJECTOR_MAX_TIMER_TICKS 65535U
@@ -17,12 +12,21 @@
 
 #define EJECTOR_RESULT_SUCCESS 0U
 #define EJECTOR_RESULT_FAILED 1U
+#define EJECTOR_RESULT_HOME_TIMEOUT 2U
 #define EJECTOR_RESULT_STOPPED 3U
+#define EJECTOR_RESULT_PULLOFF_FAILED 4U
+#define EJECTOR_RESULT_CONFIG_INVALID 5U
+
+#define EJECTOR_HOME_PHASE_IDLE 0U
+#define EJECTOR_HOME_PHASE_SEARCH 1U
+#define EJECTOR_HOME_PHASE_PULL_OFF 2U
+#define EJECTOR_HOME_PHASE_LOCATE 3U
 
 typedef struct {
   bool active;
   bool homing;
   bool homed;
+  bool configured;
   bool hold_enabled;
   bool direction_positive;
   bool direction_inverted;
@@ -30,12 +34,17 @@ typedef struct {
   bool pending_update;
   bool pending_result;
   bool pending_continue;
+  bool pending_timer_start;
   uint8_t pending_status;
+  uint8_t home_phase;
   uint16_t position;
   uint16_t target;
   uint16_t final_target;
   uint16_t steps_remaining;
   uint16_t home_steps;
+  uint16_t homing_phase_steps;
+  uint16_t home_active_samples;
+  uint16_t home_inactive_samples;
   uint16_t home_max_steps;
   uint16_t max_position;
   uint16_t home_switch_position;
@@ -43,10 +52,21 @@ typedef struct {
   uint16_t start_rate_steps_per_second;
   uint16_t current_rate_steps_per_second;
   uint16_t accel_steps_per_second2;
+  uint16_t enable_settle_ms;
+  uint16_t home_rate_steps_per_second;
+  uint16_t home_start_rate_steps_per_second;
+  uint16_t home_accel_steps_per_second2;
+  uint16_t home_debounce_ms;
+  uint16_t home_pull_off_steps;
+  uint16_t home_locate_rate_steps_per_second;
+  uint32_t current_rate_q8;
+  uint32_t timer_start_ms;
 } ejector_stepper_state_t;
 
 static volatile ejector_stepper_state_t ejector_stepper;
 static uint32_t last_update_ms;
+
+static void schedule_result(uint8_t status);
 
 static bool parse_uint16(char *line, uint8_t *char_counter, uint16_t *value)
 {
@@ -94,7 +114,10 @@ static void set_driver_enabled(bool enabled)
 static void set_hold_enabled(bool enabled)
 {
   ejector_stepper.hold_enabled = enabled;
-  set_driver_enabled(enabled || ejector_stepper.active);
+  if (!enabled && ejector_stepper.active) {
+    schedule_result(EJECTOR_RESULT_STOPPED);
+  }
+  set_driver_enabled(enabled);
 }
 
 static bool driver_enabled(void)
@@ -124,7 +147,7 @@ static uint16_t timer_ticks(uint16_t rate)
   uint32_t ticks;
 
   if (rate == 0) {
-    rate = EJECTOR_DEFAULT_RATE_STEPS_PER_SECOND;
+    rate = 1U;
   }
 
   ticks = EJECTOR_TIMER_HZ / ((uint32_t)rate * 2UL);
@@ -135,17 +158,25 @@ static uint16_t timer_ticks(uint16_t rate)
 
 static uint16_t target_rate(void)
 {
-  return ejector_stepper.rate_steps_per_second ?
-    ejector_stepper.rate_steps_per_second :
-    EJECTOR_DEFAULT_RATE_STEPS_PER_SECOND;
+  if (ejector_stepper.homing) {
+    if (ejector_stepper.home_phase == EJECTOR_HOME_PHASE_LOCATE) {
+      return ejector_stepper.home_locate_rate_steps_per_second;
+    }
+    return ejector_stepper.home_rate_steps_per_second;
+  }
+  return ejector_stepper.rate_steps_per_second;
 }
 
 static uint16_t start_rate(void)
 {
-  uint16_t rate = ejector_stepper.start_rate_steps_per_second ?
-    ejector_stepper.start_rate_steps_per_second :
-    EJECTOR_DEFAULT_START_RATE_STEPS_PER_SECOND;
+  uint16_t rate;
   const uint16_t target = target_rate();
+
+  if (ejector_stepper.homing) {
+    rate = ejector_stepper.home_start_rate_steps_per_second;
+  } else {
+    rate = ejector_stepper.start_rate_steps_per_second;
+  }
 
   if (rate > target) {
     rate = target;
@@ -155,21 +186,22 @@ static uint16_t start_rate(void)
 
 static uint16_t accel_rate(void)
 {
-  return ejector_stepper.accel_steps_per_second2 ?
-    ejector_stepper.accel_steps_per_second2 :
-    EJECTOR_DEFAULT_ACCEL_STEPS_PER_SECOND2;
+  if (ejector_stepper.homing) {
+    return ejector_stepper.home_accel_steps_per_second2;
+  }
+  return ejector_stepper.accel_steps_per_second2;
 }
 
-static uint16_t rate_delta_per_step(uint16_t rate)
+static uint32_t rate_delta_q8_per_step(uint16_t rate)
 {
-  uint16_t delta;
+  uint32_t delta;
 
   if (rate == 0) {
     rate = start_rate();
   }
 
-  delta = accel_rate() / rate;
-  return delta ? delta : 1U;
+  delta = ((uint32_t)accel_rate() * 256UL) / (uint32_t)rate;
+  return delta ? delta : 1UL;
 }
 
 static uint32_t steps_to_stop(void)
@@ -189,8 +221,16 @@ static uint32_t steps_to_stop(void)
   return (current_sq - start_sq) / (2UL * (uint32_t)accel);
 }
 
-static void update_timer_rate(uint16_t rate)
+static void update_timer_rate_q8(uint32_t rate_q8)
 {
+  uint16_t rate = (uint16_t)((rate_q8 + 128UL) / 256UL);
+
+  if (rate == 0) {
+    rate = start_rate();
+    rate_q8 = (uint32_t)rate << 8;
+  }
+
+  ejector_stepper.current_rate_q8 = rate_q8;
   ejector_stepper.current_rate_steps_per_second = rate;
   OCR5A = timer_ticks(rate);
 }
@@ -198,28 +238,32 @@ static void update_timer_rate(uint16_t rate)
 static void update_profile_rate(void)
 {
   uint16_t rate;
-  uint16_t delta;
+  uint32_t rate_q8;
+  uint32_t delta_q8;
   const uint16_t start = start_rate();
   const uint16_t target = target_rate();
+  const uint32_t start_q8 = (uint32_t)start << 8;
+  const uint32_t target_q8 = (uint32_t)target << 8;
 
   if (!ejector_stepper.active) {
     return;
   }
 
-  rate = ejector_stepper.current_rate_steps_per_second;
-  if (rate == 0) {
-    rate = start;
-  }
-  delta = rate_delta_per_step(rate);
+  rate_q8 = ejector_stepper.current_rate_q8 ?
+    ejector_stepper.current_rate_q8 : start_q8;
+  rate = (uint16_t)((rate_q8 + 128UL) / 256UL);
+  delta_q8 = rate_delta_q8_per_step(rate);
 
   if (!ejector_stepper.homing &&
       ((uint32_t)ejector_stepper.steps_remaining <= steps_to_stop())) {
-    rate = ((uint16_t)(rate - start) > delta) ? (rate - delta) : start;
-  } else if (rate < target) {
-    rate = ((uint16_t)(target - rate) > delta) ? (rate + delta) : target;
+    rate_q8 = (rate_q8 > (start_q8 + delta_q8)) ?
+      (rate_q8 - delta_q8) : start_q8;
+  } else if (rate_q8 < target_q8) {
+    rate_q8 = ((target_q8 - rate_q8) > delta_q8) ?
+      (rate_q8 + delta_q8) : target_q8;
   }
 
-  update_timer_rate(rate);
+  update_timer_rate_q8(rate_q8);
 }
 
 static void stop_timer(void)
@@ -231,14 +275,37 @@ static void stop_timer(void)
   set_step_pin(false);
 }
 
+static void reset_profile_rate(void)
+{
+  const uint16_t rate = start_rate();
+
+  ejector_stepper.current_rate_steps_per_second = rate;
+  ejector_stepper.current_rate_q8 = (uint32_t)rate << 8;
+  OCR5A = timer_ticks(rate);
+}
+
 static void start_timer(void)
 {
   stop_timer();
-  ejector_stepper.current_rate_steps_per_second = start_rate();
-  OCR5A = timer_ticks(ejector_stepper.current_rate_steps_per_second);
+  ejector_stepper.pending_timer_start = false;
+  reset_profile_rate();
   TCCR5A = 0;
   TCCR5B = bit(WGM52) | bit(CS51);
   TIMSK5 |= bit(OCIE5A);
+}
+
+static void schedule_timer_start(void)
+{
+  stop_timer();
+  reset_profile_rate();
+  if (ejector_stepper.enable_settle_ms == 0) {
+    start_timer();
+    return;
+  }
+
+  ejector_stepper.pending_timer_start = true;
+  ejector_stepper.timer_start_ms =
+    masterclock + (uint32_t)ejector_stepper.enable_settle_ms;
 }
 
 static void snapshot(uint16_t *position,
@@ -282,6 +349,14 @@ static void print_status_report(void)
   print_uint8_base10(enabled ? 1 : 0);
   printPgmString(PSTR(","));
   print_uint8_base10(home_active ? 1 : 0);
+  printPgmString(PSTR(","));
+  print_uint8_base10(ejector_stepper.home_phase);
+  printPgmString(PSTR(","));
+  printInteger(ejector_stepper.current_rate_steps_per_second);
+  printPgmString(PSTR(","));
+  printInteger(ejector_stepper.target);
+  printPgmString(PSTR(","));
+  print_uint8_base10(ejector_stepper.pending_status);
   printPgmString(PSTR("]\r\n"));
 }
 
@@ -299,18 +374,27 @@ static void schedule_result(uint8_t status)
   ejector_stepper.active = false;
   ejector_stepper.homing = false;
   ejector_stepper.pending_continue = false;
+  ejector_stepper.pending_timer_start = false;
   ejector_stepper.pending_update = true;
   ejector_stepper.pending_result = true;
   ejector_stepper.pending_status = status;
+  ejector_stepper.home_phase = EJECTOR_HOME_PHASE_IDLE;
   stop_timer();
-  set_driver_enabled(ejector_stepper.hold_enabled);
 }
 
 static void begin_counted_move(uint16_t target)
 {
   uint16_t delta;
 
+  if (!ejector_stepper.configured) {
+    schedule_result(EJECTOR_RESULT_CONFIG_INVALID);
+    return;
+  }
   if (target > ejector_stepper.max_position) {
+    schedule_result(EJECTOR_RESULT_FAILED);
+    return;
+  }
+  if (!driver_enabled()) {
     schedule_result(EJECTOR_RESULT_FAILED);
     return;
   }
@@ -331,35 +415,58 @@ static void begin_counted_move(uint16_t target)
 
   ejector_stepper.steps_remaining = delta;
   ejector_stepper.homing = false;
+  ejector_stepper.home_phase = EJECTOR_HOME_PHASE_IDLE;
   ejector_stepper.active = true;
   ejector_stepper.pending_update = true;
-  set_driver_enabled(true);
-  start_timer();
+  schedule_timer_start();
+}
+
+static uint16_t home_debounce_steps(void)
+{
+  uint32_t steps = ((uint32_t)target_rate() *
+    (uint32_t)ejector_stepper.home_debounce_ms + 999UL) / 1000UL;
+
+  if (steps == 0) {
+    steps = 1;
+  }
+  return (uint16_t)min(steps, 65535UL);
+}
+
+static void begin_homing_phase(uint8_t phase, bool direction_positive)
+{
+  ejector_stepper.home_phase = phase;
+  ejector_stepper.homing_phase_steps = 0;
+  ejector_stepper.home_active_samples = 0;
+  ejector_stepper.home_inactive_samples = 0;
+  ejector_stepper.homing = true;
+  ejector_stepper.active = true;
+  ejector_stepper.pending_update = true;
+  set_direction(direction_positive);
+  reset_profile_rate();
 }
 
 static void start_homing(uint16_t final_target)
 {
-  ejector_stepper.final_target = final_target;
-  ejector_stepper.target = ejector_stepper.home_switch_position;
-  ejector_stepper.home_steps = 0;
-
-  if (home_switch_active()) {
-    ejector_stepper.position = ejector_stepper.home_switch_position;
-    ejector_stepper.homed = true;
-    if (final_target == ejector_stepper.home_switch_position) {
-      schedule_result(EJECTOR_RESULT_SUCCESS);
-    } else {
-      begin_counted_move(final_target);
-    }
+  if (!ejector_stepper.configured) {
+    schedule_result(EJECTOR_RESULT_CONFIG_INVALID);
     return;
   }
 
-  set_direction(false);
+  ejector_stepper.final_target = final_target;
+  ejector_stepper.target = ejector_stepper.home_switch_position;
+  ejector_stepper.home_steps = 0;
+  if (!driver_enabled()) {
+    schedule_result(EJECTOR_RESULT_FAILED);
+    return;
+  }
   ejector_stepper.homing = true;
   ejector_stepper.active = true;
-  ejector_stepper.pending_update = true;
-  set_driver_enabled(true);
-  start_timer();
+  if (home_switch_active()) {
+    begin_homing_phase(EJECTOR_HOME_PHASE_PULL_OFF, true);
+  } else {
+    begin_homing_phase(EJECTOR_HOME_PHASE_SEARCH, false);
+  }
+  schedule_timer_start();
 }
 
 static void go_to_target(uint16_t target)
@@ -378,7 +485,6 @@ static void stop_motion(uint8_t status)
     schedule_result(status);
   } else {
     stop_timer();
-    set_driver_enabled(ejector_stepper.hold_enabled);
   }
 }
 
@@ -388,6 +494,8 @@ static void complete_home(void)
   ejector_stepper.homed = true;
   ejector_stepper.homing = false;
   ejector_stepper.active = false;
+  ejector_stepper.pending_timer_start = false;
+  ejector_stepper.home_phase = EJECTOR_HOME_PHASE_IDLE;
   stop_timer();
 
   if (ejector_stepper.final_target == ejector_stepper.home_switch_position) {
@@ -401,12 +509,68 @@ static void complete_home(void)
 static void handle_rising_edge(void)
 {
   if (ejector_stepper.homing) {
+    const bool home_active = home_switch_active();
+    const uint16_t debounce_steps = home_debounce_steps();
+
     ejector_stepper.home_steps++;
-    if (home_switch_active()) {
-      complete_home();
-    } else if (ejector_stepper.home_steps >= ejector_stepper.home_max_steps) {
-      ejector_stepper.homed = false;
-      schedule_result(EJECTOR_RESULT_FAILED);
+    ejector_stepper.homing_phase_steps++;
+
+    switch (ejector_stepper.home_phase) {
+      case EJECTOR_HOME_PHASE_SEARCH:
+        if (home_active) {
+          ejector_stepper.home_active_samples++;
+          if (ejector_stepper.home_active_samples >= debounce_steps) {
+            begin_homing_phase(EJECTOR_HOME_PHASE_PULL_OFF, true);
+          }
+        } else {
+          ejector_stepper.home_active_samples = 0;
+        }
+        if (ejector_stepper.active &&
+            (ejector_stepper.homing_phase_steps >=
+             ejector_stepper.home_max_steps)) {
+          ejector_stepper.homed = false;
+          schedule_result(EJECTOR_RESULT_HOME_TIMEOUT);
+        }
+        break;
+
+      case EJECTOR_HOME_PHASE_PULL_OFF:
+        if (home_active) {
+          ejector_stepper.home_inactive_samples = 0;
+        } else {
+          ejector_stepper.home_inactive_samples++;
+        }
+        if ((ejector_stepper.home_inactive_samples >= debounce_steps) &&
+            (ejector_stepper.homing_phase_steps >=
+             ejector_stepper.home_pull_off_steps)) {
+          begin_homing_phase(EJECTOR_HOME_PHASE_LOCATE, false);
+        } else if (ejector_stepper.homing_phase_steps >=
+                   ejector_stepper.home_max_steps) {
+          ejector_stepper.homed = false;
+          schedule_result(EJECTOR_RESULT_PULLOFF_FAILED);
+        }
+        break;
+
+      case EJECTOR_HOME_PHASE_LOCATE:
+        if (home_active) {
+          ejector_stepper.home_active_samples++;
+          if (ejector_stepper.home_active_samples >= debounce_steps) {
+            complete_home();
+          }
+        } else {
+          ejector_stepper.home_active_samples = 0;
+        }
+        if (ejector_stepper.active &&
+            (ejector_stepper.homing_phase_steps >=
+             ejector_stepper.home_max_steps)) {
+          ejector_stepper.homed = false;
+          schedule_result(EJECTOR_RESULT_HOME_TIMEOUT);
+        }
+        break;
+
+      default:
+        ejector_stepper.homed = false;
+        schedule_result(EJECTOR_RESULT_FAILED);
+        break;
     }
     return;
   }
@@ -456,34 +620,46 @@ void ejector_stepper_init(void)
   EJECTOR_STEPPER_PORT |= bit(EJECTOR_STEPPER_HOME_BIT);
   EJECTOR_STEPPER_PORT &= ~bit(EJECTOR_STEPPER_STEP_BIT);
   EJECTOR_STEPPER_PORT &= ~bit(EJECTOR_STEPPER_DIR_BIT);
-  EJECTOR_STEPPER_PORT |= bit(EJECTOR_STEPPER_ENABLE_N_BIT);
+  EJECTOR_STEPPER_PORT &= ~bit(EJECTOR_STEPPER_ENABLE_N_BIT);
 
   ejector_stepper.active = false;
   ejector_stepper.homing = false;
   ejector_stepper.homed = false;
-  ejector_stepper.hold_enabled = false;
+  ejector_stepper.configured = false;
+  ejector_stepper.hold_enabled = true;
   ejector_stepper.direction_positive = true;
   ejector_stepper.direction_inverted = false;
   ejector_stepper.step_high = false;
   ejector_stepper.pending_update = false;
   ejector_stepper.pending_result = false;
   ejector_stepper.pending_continue = false;
+  ejector_stepper.pending_timer_start = false;
   ejector_stepper.pending_status = EJECTOR_RESULT_SUCCESS;
+  ejector_stepper.home_phase = EJECTOR_HOME_PHASE_IDLE;
   ejector_stepper.position = 0;
   ejector_stepper.target = 0;
   ejector_stepper.final_target = 0;
   ejector_stepper.steps_remaining = 0;
   ejector_stepper.home_steps = 0;
-  ejector_stepper.home_max_steps = EJECTOR_DEFAULT_HOME_MAX_STEPS;
-  ejector_stepper.max_position = EJECTOR_DEFAULT_MAX_POSITION;
+  ejector_stepper.homing_phase_steps = 0;
+  ejector_stepper.home_active_samples = 0;
+  ejector_stepper.home_inactive_samples = 0;
+  ejector_stepper.home_max_steps = 0;
+  ejector_stepper.max_position = 0;
   ejector_stepper.home_switch_position = 0;
-  ejector_stepper.rate_steps_per_second = EJECTOR_DEFAULT_RATE_STEPS_PER_SECOND;
-  ejector_stepper.start_rate_steps_per_second =
-    EJECTOR_DEFAULT_START_RATE_STEPS_PER_SECOND;
-  ejector_stepper.current_rate_steps_per_second =
-    EJECTOR_DEFAULT_START_RATE_STEPS_PER_SECOND;
-  ejector_stepper.accel_steps_per_second2 =
-    EJECTOR_DEFAULT_ACCEL_STEPS_PER_SECOND2;
+  ejector_stepper.rate_steps_per_second = 0;
+  ejector_stepper.start_rate_steps_per_second = 0;
+  ejector_stepper.current_rate_steps_per_second = 0;
+  ejector_stepper.accel_steps_per_second2 = 0;
+  ejector_stepper.enable_settle_ms = 0;
+  ejector_stepper.home_rate_steps_per_second = 0;
+  ejector_stepper.home_start_rate_steps_per_second = 0;
+  ejector_stepper.home_accel_steps_per_second2 = 0;
+  ejector_stepper.home_debounce_ms = 0;
+  ejector_stepper.home_pull_off_steps = 0;
+  ejector_stepper.home_locate_rate_steps_per_second = 0;
+  ejector_stepper.current_rate_q8 = 0;
+  ejector_stepper.timer_start_ms = 0;
   last_update_ms = masterclock;
 }
 
@@ -495,6 +671,11 @@ void ejector_stepper_service(void)
   if (ejector_stepper.pending_continue) {
     ejector_stepper.pending_continue = false;
     begin_counted_move(ejector_stepper.final_target);
+  }
+
+  if (ejector_stepper.pending_timer_start &&
+      ((int32_t)(masterclock - ejector_stepper.timer_start_ms) >= 0)) {
+    start_timer();
   }
 
   if (ejector_stepper.active &&
@@ -533,6 +714,13 @@ uint8_t ejector_stepper_execute_line(char *line, uint8_t *char_counter)
   uint16_t direction_inverted;
   uint16_t start_rate_config;
   uint16_t accel_config;
+  uint16_t enable_settle_ms;
+  uint16_t home_rate;
+  uint16_t home_start_rate;
+  uint16_t home_accel;
+  uint16_t home_debounce_ms;
+  uint16_t home_pull_off_steps;
+  uint16_t home_locate_rate;
   uint16_t target;
   uint8_t status;
 
@@ -575,37 +763,95 @@ uint8_t ejector_stepper_execute_line(char *line, uint8_t *char_counter)
       if (!parse_uint16(line, char_counter, &direction_inverted)) {
         return STATUS_BAD_NUMBER_FORMAT;
       }
-      start_rate_config = EJECTOR_DEFAULT_START_RATE_STEPS_PER_SECOND;
-      accel_config = EJECTOR_DEFAULT_ACCEL_STEPS_PER_SECOND2;
-      if (line[*char_counter] == ',') {
-        (*char_counter)++;
-        if (!parse_uint16(line, char_counter, &start_rate_config)) {
-          return STATUS_BAD_NUMBER_FORMAT;
-        }
-        status = parse_comma(line, char_counter);
-        if (status) {
-          return status;
-        }
-        if (!parse_uint16(line, char_counter, &accel_config)) {
-          return STATUS_BAD_NUMBER_FORMAT;
-        }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &start_rate_config)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &accel_config)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &enable_settle_ms)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &home_rate)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &home_start_rate)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &home_accel)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &home_debounce_ms)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &home_pull_off_steps)) {
+        return STATUS_BAD_NUMBER_FORMAT;
+      }
+      status = parse_comma(line, char_counter);
+      if (status) {
+        return status;
+      }
+      if (!parse_uint16(line, char_counter, &home_locate_rate)) {
+        return STATUS_BAD_NUMBER_FORMAT;
       }
       if (line[*char_counter] != 0) {
         return STATUS_INVALID_STATEMENT;
       }
-      ejector_stepper.rate_steps_per_second =
-        rate ? rate : EJECTOR_DEFAULT_RATE_STEPS_PER_SECOND;
-      ejector_stepper.home_max_steps =
-        home_max ? home_max : EJECTOR_DEFAULT_HOME_MAX_STEPS;
-      ejector_stepper.max_position =
-        max_position ? max_position : EJECTOR_DEFAULT_MAX_POSITION;
+      if ((rate == 0) || (home_max == 0) || (max_position == 0) ||
+          (start_rate_config == 0) || (accel_config == 0) ||
+          (home_pull_off_steps == 0) || (home_rate == 0) ||
+          (home_start_rate == 0) || (home_accel == 0) ||
+          (home_locate_rate == 0) ||
+          (home_switch_position > max_position)) {
+        return STATUS_INVALID_STATEMENT;
+      }
+      ejector_stepper.rate_steps_per_second = rate;
+      ejector_stepper.home_max_steps = home_max;
+      ejector_stepper.max_position = max_position;
       ejector_stepper.home_switch_position = home_switch_position;
       ejector_stepper.direction_inverted = direction_inverted != 0;
-      ejector_stepper.start_rate_steps_per_second =
-        start_rate_config ? start_rate_config :
-        EJECTOR_DEFAULT_START_RATE_STEPS_PER_SECOND;
-      ejector_stepper.accel_steps_per_second2 =
-        accel_config ? accel_config : EJECTOR_DEFAULT_ACCEL_STEPS_PER_SECOND2;
+      ejector_stepper.start_rate_steps_per_second = start_rate_config;
+      ejector_stepper.accel_steps_per_second2 = accel_config;
+      ejector_stepper.enable_settle_ms = enable_settle_ms;
+      ejector_stepper.home_rate_steps_per_second = home_rate;
+      ejector_stepper.home_start_rate_steps_per_second = home_start_rate;
+      ejector_stepper.home_accel_steps_per_second2 = home_accel;
+      ejector_stepper.home_debounce_ms = home_debounce_ms;
+      ejector_stepper.home_pull_off_steps = home_pull_off_steps;
+      ejector_stepper.home_locate_rate_steps_per_second = home_locate_rate;
+      ejector_stepper.configured = true;
       return STATUS_OK;
 
     case 'H':
@@ -617,6 +863,10 @@ uint8_t ejector_stepper_execute_line(char *line, uint8_t *char_counter)
       }
       if (line[*char_counter] != 0) {
         return STATUS_INVALID_STATEMENT;
+      }
+      if (!ejector_stepper.configured) {
+        schedule_result(EJECTOR_RESULT_CONFIG_INVALID);
+        return STATUS_OK;
       }
       if (target > ejector_stepper.max_position) {
         return STATUS_INVALID_STATEMENT;
@@ -634,6 +884,10 @@ uint8_t ejector_stepper_execute_line(char *line, uint8_t *char_counter)
       }
       if (line[*char_counter] != 0) {
         return STATUS_INVALID_STATEMENT;
+      }
+      if (!ejector_stepper.configured) {
+        schedule_result(EJECTOR_RESULT_CONFIG_INVALID);
+        return STATUS_OK;
       }
       if (target > ejector_stepper.max_position) {
         return STATUS_INVALID_STATEMENT;
