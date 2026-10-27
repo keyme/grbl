@@ -113,6 +113,10 @@
 // goes from 18 or 16 to make room for the additional line number data in the plan_block_t struct
 #define USE_LINE_NUMBERS // Always enabled for Our build.
 
+// Use the spare motor-control MCU J105 connector for the stepper_v1 ejector.
+// J105 provides V5, GND, and six spare PORTA I/O pins for one ejector harness.
+#define KEYME_J105_EJECTOR
+
 // ---------------------------------------------------------------------------------------
 // ADVANCED CONFIGURATION OPTIONS:
 

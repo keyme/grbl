@@ -31,6 +31,7 @@
 #include "report.h"
 #include "systick.h"
 #include "magazine.h"
+#include "ejector_stepper.h"
 
 #define STATUS_REPORT_RATE_MS 333  //3 Hz
 
@@ -57,6 +58,9 @@ static uint8_t protocol_execute_line(char *line)
     // Everything else is gcode. Block if in alarm mode.
     status = STATUS_ALARM_LOCK;
     report_status_message(STATUS_ALARM_LOCK);
+
+  } else if (ejector_stepper_is_active()) {
+    status = STATUS_IDLE_ERROR;
 
   } else if (line[0] == CMD_LINE_START) {
     // This is a special start command which is guaranteed to be sequenced after
@@ -215,6 +219,7 @@ void protocol_execute_runtime()
 
   // Service SysTick Callbacks
   systick_service_callbacks();
+  ejector_stepper_service();
 
   if (settings.spi_motor_drivers) {
     maybe_reinit_motors();

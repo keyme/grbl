@@ -1165,4 +1165,3 @@ void st_prep_buffer()
      we know when the plan is feasible in the context of what's already in the code and not
      require too much more code?
 */
-
